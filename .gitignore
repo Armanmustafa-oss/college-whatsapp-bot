@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment
+.env
+.venv/
+env/
+venv/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Database
+chroma_db/
+instance/chroma/
+
+# Logs
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Supabase (if you add local config)
+supabase/
