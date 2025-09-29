@@ -1,5 +1,7 @@
 # run.py
 import os
+os.environ["CHROMA_TELEMETRY"] = "off"
+import os
 import uvicorn
 from app.main import app
 
