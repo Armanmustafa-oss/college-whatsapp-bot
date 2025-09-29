@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AIService:
     def __init__(self):
         self.llm = ChatGroq(
-            model="llama3-8b-8192",  # Free, fast, powerful
+            model="llama-3.1-8b-instant",  # Free, fast, powerful
             temperature=0.3,
             api_key=os.getenv("GROQ_API_KEY")
         )
