@@ -1,3 +1,5 @@
+import chromadb
+from chromadb import PersistentClient
 import os
 import chromadb
 import json
@@ -10,17 +12,20 @@ logger = logging.getLogger(__name__)
 
 class RAGService:
     def __init__(self):
-        # ... your existing init code ...
+        # Use Railway's ephemeral storage (or persistent if you add volume later)
+        self.client = chromadb.PersistentClient(path="/tmp/chroma_db")
+        self.collection_name = "college_documents"
         try:
             self.collection = self.client.get_collection(self.collection_name)
             print("✅ Loaded existing ChromaDB collection")
         except (ValueError, chromadb.errors.InvalidCollectionException):
+            # Create collection if it doesn't exist
             self.collection = self.client.create_collection(
                 name=self.collection_name,
                 metadata={"hnsw:space": "cosine"}
             )
             print("🆕 Created new ChromaDB collection")
-            self._load_dummy_data()  # ← This calls the method below
+            self._load_dummy_data()  # Load sample data on first run
 
     def _load_dummy_data(self):
         """Load dummy college data into the vector database"""
