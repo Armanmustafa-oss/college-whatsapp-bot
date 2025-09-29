@@ -19,18 +19,19 @@ except Exception as e:
     logging.basicConfig(level=logging.INFO)
     logging.getLogger(__name__).warning(f"setup_logging() failed or not available: {e}")
 
-import uvicorn
-from app.config import settings
 
-def main():
-    # Use uvicorn import-string so uvicorn imports the package correctly
-    uvicorn.run(
-        "app.main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG,
-        log_level="info"
-    )
+# run.py
+import uvicorn
+from app.main import app
+from app.config import settings
+import os
 
 if __name__ == "__main__":
-    main()
+    # Railway sets PORT automatically — use it!
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,  # ← Use dynamic PORT
+        reload=False,  # Disable reload in production
+    )
