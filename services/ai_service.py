@@ -1,24 +1,25 @@
 import re
-import openai
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain.schema import HumanMessage, SystemMessage
 from typing import List, Dict
 import logging
 from app.config import settings
-from .rag_service import rag_service
+from services.rag_service import rag_service
 from functools import lru_cache
 import hashlib
 import re
+import os
+import openai
+
 
 logger = logging.getLogger(__name__)
 
 class AIService:
     def __init__(self):
-        openai.api_key = settings.OPENAI_API_KEY
-        self.llm = ChatOpenAI(
-            temperature=0.3,  # Lower temperature for more consistent responses
-            model="gpt-3.5-turbo",
-            openai_api_key=settings.OPENAI_API_KEY
+        self.llm = ChatGroq(
+            model="llama3-8b-8192",  # Free, fast, powerful
+            temperature=0.3,
+            api_key=os.getenv("GROQ_API_KEY")
         )
         
         self.system_prompt = """
