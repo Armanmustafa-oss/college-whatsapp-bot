@@ -1,5 +1,4 @@
 import os
-os.environ["CHROMA_TELEMETRY"] = "off"
 import chromadb
 import json
 import os
@@ -10,23 +9,25 @@ import logging
 logger = logging.getLogger(__name__)
 
 class RAGService:
-    def __init__(self):
-        # Initialize ChromaDB client
-        self.client = chromadb.PersistentClient(path="./chroma_db")
-        self.collection_name = "college_documents"
-        
-        # Get or create collection
-        try:
-            self.collection = self.client.get_collection(self.collection_name)
-            logger.info("Loaded existing ChromaDB collection")
-        except ValueError:
-            # Collection doesn't exist, create it
-            self.collection = self.client.create_collection(
-                name=self.collection_name,
-                metadata={"hnsw:space": "cosine"}
-            )
-            logger.info("Created new ChromaDB collection")
-            self._load_dummy_data()
+    # app/services/rag_service.py
+
+ def __init__(self):
+    # Use Railway's ephemeral storage (or persistent if you add volume later)
+    self.client = chromadb.PersistentClient(path="/tmp/chroma_db")
+    self.collection_name = "college_documents"
+    
+    try:
+        self.collection = self.client.get_collection(self.collection_name)
+        print("✅ Loaded existing ChromaDB collection")
+    except (ValueError, chromadb.errors.InvalidCollectionException):
+        # Create collection if it doesn't exist
+        self.collection = self.client.create_collection(
+            name=self.collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+        print("🆕 Created new ChromaDB collection")
+        self._load_dummy_data()  # Load sample data on first run
+
     
     def _load_dummy_data(self):
         """Load dummy college data into the vector database"""
@@ -63,7 +64,7 @@ class RAGService:
             }
         ]
         
-        # Add documents to ChromaDB
+        # Add to ChromaDB
         self.collection.add(
             documents=[doc["content"] for doc in dummy_data],
             ids=[doc["id"] for doc in dummy_data],
@@ -72,8 +73,7 @@ class RAGService:
                 "title": doc["title"]
             } for doc in dummy_data]
         )
-        
-        logger.info(f"Loaded {len(dummy_data)} dummy documents into ChromaDB")
+        print(f"📚 Loaded {len(dummy_data)} dummy documents")
     
     def search_documents(self, query: str, n_results: int = 3, filter_category: str = None):
         """
