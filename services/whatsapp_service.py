@@ -1,6 +1,3 @@
-# Global instance
-from services import WhatsAppService
-whatsapp_service = WhatsAppService()
 import base64
 import requests
 import json
