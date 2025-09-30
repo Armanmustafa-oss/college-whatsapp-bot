@@ -58,46 +58,84 @@ async def verify_webhook(
         raise HTTPException(status_code=403, detail="Verification failed")
 
 @app.post("/webhook")
+@limiter.limit("10/minute")
 async def handle_webhook(request: Request):
     try:
-        body = await request.json()
-        logger.info(f"Received webhook: {body}")
-
-        message_data = whatsapp_service.parse_incoming_message(body)
-
-        if not message_data:
-            logger.info("No valid message found in webhook")
+        # Twilio sends form-encoded data, NOT JSON
+        form_data = await request.form()
+        logger.info(f"Received Twilio webhook: {dict(form_data)}")
+        
+        # Extract message info from form data
+        from_number = form_data.get("From", "").replace("whatsapp:", "")
+        message_body = form_data.get("Body", "")
+        message_id = form_data.get("MessageSid", "")
+        
+        if not message_body:
+            logger.info("No message body found")
             return {"status": "ok"}
-
-        if not message_data.get("text_body"):
-            logger.info("No text message found in webhook")
-            return {"status": "ok"}
-
-        user_phone = message_data.get("from_number")
-        user_message = message_data.get("text_body")
-        message_id = message_data.get("message_id")
-
-        logger.info(f"Processing message from {user_phone}: {user_message}")
-
-        whatsapp_service.mark_message_as_read(message_id)
-
-        ai_response = ai_service.generate_response(user_message, user_phone)
-
-        success = whatsapp_service.send_message(
-            to_phone_number=user_phone,
-            message=ai_response["message"]
-        )
-
+        
+        logger.info(f"Processing message from {from_number}: {message_body}")
+        
+        # Mark message as read (Twilio auto-reads, so skip if not needed)
+        
+        # Generate AI response
+        ai_response = ai_service.generate_response(message_body, from_number)
+        
+        # Send reply via Twilio
+        success = whatsapp_service.send_message(from_number, ai_response["message"])
+        
         if success:
-            logger.info(f"Response sent successfully to {user_phone}")
+            logger.info(f"✅ Reply sent to {from_number}")
         else:
-            logger.error(f"Failed to send response to {user_phone}")
-
+            logger.error(f"❌ Failed to send reply to {from_number}")
+            
         return {"status": "ok"}
-
+        
     except Exception as e:
-        logger.error(f"Error handling webhook: {e}")
+        logger.error(f"💥 Error handling webhook: {e}")
         return {"status": "error", "message": str(e)}
+
+# @app.post("/webhook")
+# async def handle_webhook(request: Request):
+#     try:
+#         body = await request.json()
+#         logger.info(f"Received webhook: {body}")
+
+#         message_data = whatsapp_service.parse_incoming_message(body)
+
+#         if not message_data:
+#             logger.info("No valid message found in webhook")
+#             return {"status": "ok"}
+
+#         if not message_data.get("text_body"):
+#             logger.info("No text message found in webhook")
+#             return {"status": "ok"}
+
+#         user_phone = message_data.get("from_number")
+#         user_message = message_data.get("text_body")
+#         message_id = message_data.get("message_id")
+
+#         logger.info(f"Processing message from {user_phone}: {user_message}")
+
+#         whatsapp_service.mark_message_as_read(message_id)
+
+#         ai_response = ai_service.generate_response(user_message, user_phone)
+
+#         success = whatsapp_service.send_message(
+#             to_phone_number=user_phone,
+#             message=ai_response["message"]
+#         )
+
+#         if success:
+#             logger.info(f"Response sent successfully to {user_phone}")
+#         else:
+#             logger.error(f"Failed to send response to {user_phone}")
+
+#         return {"status": "ok"}
+
+#     except Exception as e:
+#         logger.error(f"Error handling webhook: {e}")
+#         return {"status": "error", "message": str(e)}
 
 @app.get("/health")
 async def health_check():
