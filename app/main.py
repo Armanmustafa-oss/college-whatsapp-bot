@@ -29,6 +29,16 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["10/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.post("/")
+async def root_post(request: Request):
+    """Catch accidental POST requests to root (e.g., from misconfigured webhook)"""
+    try:
+        body = await request.body()
+        logger.warning(f"⚠️ Ignored POST to /: {body[:200]}...")  # Log first 200 chars
+    except Exception as e:
+        logger.error(f"Error reading POST body: {e}")
+    return {"status": "ignored"}
+
 @app.get("/")
 async def root():
     return {"message": "College WhatsApp Chatbot API is running!"}

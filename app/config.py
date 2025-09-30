@@ -1,13 +1,11 @@
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
 
 class Settings:
     # WhatsApp Business API
     WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
-    WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID") 
-    VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "your_custom_verify_token")
+    VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "test")
+    WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
     
     # OpenAI
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
