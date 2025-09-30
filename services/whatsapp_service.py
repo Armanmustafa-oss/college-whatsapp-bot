@@ -25,14 +25,41 @@ def send_message(self, to_phone_number: str, message: str) -> bool:
     }
     try:
         response = requests.post(
-            "https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
+            f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
             headers=headers,
             data=data
         )
-        return response.status_code == 201
+        if response.status_code == 201:
+            logger.info(f"📤 Twilio reply sent to {to_phone_number}")
+            return True
+        else:
+            logger.error(f"❌ Twilio error: {response.status_code} - {response.text}")
+            return False
     except Exception as e:
-        logger.error(f"Twilio send failed: {e}")
-        return False 
+        logger.error(f"💥 Twilio send failed: {e}")
+        return False
+
+
+# def send_message(self, to_phone_number: str, message: str) -> bool:
+#     headers = {
+#         "Authorization": f"Basic {base64.b64encode(f'{self.account_sid}:{self.auth_token}'.encode()).decode()}",
+#         "Content-Type": "application/x-www-form-urlencoded"
+#     }
+#     data = {
+#         "To": f"whatsapp:+{to_phone_number.lstrip('+')}",
+#         "From": f"whatsapp:+{self.twilio_number.lstrip('+')}",
+#         "Body": message
+#     }
+#     try:
+#         response = requests.post(
+#             "https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
+#             headers=headers,
+#             data=data
+#         )
+#         return response.status_code == 201
+#     except Exception as e:
+#         logger.error(f"Twilio send failed: {e}")
+#         return False 
 
     # def send_message(self, to_phone_number: str, message: str) -> bool:
     #     """
