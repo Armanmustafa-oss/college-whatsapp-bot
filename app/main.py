@@ -12,7 +12,7 @@ from slowapi.util import get_remote_address
 from .config import settings
 from services.whatsapp_service import whatsapp_service
 from services.ai_service import ai_service
-
+from services.whatsapp_service import whatsapp_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -83,7 +83,6 @@ async def handle_webhook(request: Request):
         
         # Send reply via Twilio
         success = whatsapp_service.send_message(from_number, ai_response["message"])
-        
         if success:
             logger.info(f"✅ Reply sent to {from_number}")
         else:

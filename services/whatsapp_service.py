@@ -1,43 +1,46 @@
+# Global instance
+from services import WhatsAppService
+whatsapp_service = WhatsAppService()
 import base64
 import requests
 import json
 import logging
 from typing import Optional
 from app.config import settings
+import os
 
 logger = logging.getLogger(__name__)
-
 class WhatsAppService:
     def __init__(self):
-        self.access_token = settings.WHATSAPP_ACCESS_TOKEN
-        self.phone_number_id = settings.WHATSAPP_PHONE_NUMBER_ID
-        self.api_url = settings.WHATSAPP_API_URL
+        self.account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        self.twilio_number = os.getenv("TWILIO_WHATSAPP_NUMBER")  # e.g., "whatsapp:+14155238886"
 
-def send_message(self, to_phone_number: str, message: str) -> bool:
-    headers = {
-        "Authorization": f"Basic {base64.b64encode(f'{self.account_sid}:{self.auth_token}'.encode()).decode()}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    data = {
-        "To": f"whatsapp:+{to_phone_number.lstrip('+')}",
-        "From": f"whatsapp:+{self.twilio_number.lstrip('+')}",
-        "Body": message
-    }
-    try:
-        response = requests.post(
-            f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
-            headers=headers,
-            data=data
-        )
-        if response.status_code == 201:
-            logger.info(f"📤 Twilio reply sent to {to_phone_number}")
-            return True
-        else:
-            logger.error(f"❌ Twilio error: {response.status_code} - {response.text}")
+    def send_message(self, to_phone_number: str, message: str) -> bool:
+        headers = {
+            "Authorization": f"Basic {base64.b64encode(f'{self.account_sid}:{self.auth_token}'.encode()).decode()}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        data = {
+            "To": f"whatsapp:+{to_phone_number.lstrip('+')}",
+            "From": f"whatsapp:+{self.twilio_number.lstrip('+')}",
+            "Body": message
+        }
+        try:
+            response = requests.post(
+                f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
+                headers=headers,
+                data=data
+            )
+            if response.status_code == 201:
+                logger.info(f"  Twilio reply sent to {to_phone_number}")
+                return True
+            else:
+                logger.error(f"  Twilio error: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            logger.error(f"  Twilio send failed: {e}")
             return False
-    except Exception as e:
-        logger.error(f"💥 Twilio send failed: {e}")
-        return False
 
 
 # def send_message(self, to_phone_number: str, message: str) -> bool:
