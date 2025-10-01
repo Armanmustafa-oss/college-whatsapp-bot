@@ -14,13 +14,17 @@ class WhatsAppService:
         self.twilio_number = os.getenv("TWILIO_WHATSAPP_NUMBER")  # e.g., "whatsapp:+14155238886"
 
     def send_message(self, to_phone_number: str, message: str) -> bool:
+        if not to_phone_number:
+            logger.error("Cannot send message: to_phone_number is empty")
+            return False
+        
         headers = {
             "Authorization": f"Basic {base64.b64encode(f'{self.account_sid}:{self.auth_token}'.encode()).decode()}",
             "Content-Type": "application/x-www-form-urlencoded"
         }
         data = {
             "To": f"whatsapp:+{to_phone_number.lstrip('+')}",
-            "From": f"whatsapp:+{self.twilio_number.lstrip('+')}",
+            "From": f"whatsapp:{self.twilio_number.lstrip('whatsapp:')}",
             "Body": message
         }
         try:
