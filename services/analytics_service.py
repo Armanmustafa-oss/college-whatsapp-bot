@@ -1,4 +1,5 @@
 # Add to app/services/analytics_service.py
+from datetime import datetime
 from supabase import create_client
 from app.config import settings
 
@@ -14,6 +15,6 @@ class AnalyticsService:
             "user_message": message,
             "bot_response": response,
             "language": language,
-            "timestamp": "now()"
+            "timestamp": datetime.now().isoformat()
         }
         self.supabase.table("conversations").insert(data).execute()
