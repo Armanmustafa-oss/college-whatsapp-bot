@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 import os
 
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, UploadFile
 from fastapi.responses import PlainTextResponse, JSONResponse
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -12,9 +12,10 @@ from slowapi.util import get_remote_address
 
 from .config import settings
 
-# Import services correctly (absolute paths)
+# ✅ CORRECT ABSOLUTE IMPORTS
 from services.whatsapp_service import whatsapp_service
 from services.ai_service import ai_service
+from services.knowledge import KnowledgeBase
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,7 +35,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.post("/")
 async def root_post(request: Request):
-    """Catch accidental POST requests to root (e.g., from misconfigured webhook)"""
+    """Catch accidental POST requests to root"""
     try:
         body = await request.body()
         logger.warning(f"⚠️ Ignored POST to /: {body[:200].decode('utf-8', errors='ignore')}...")
@@ -54,7 +55,7 @@ async def verify_webhook(
     hub_challenge: str = Query(alias="hub.challenge"), 
     hub_verify_token: str = Query(alias="hub.verify_token")
 ):
-    """Webhook verification endpoint for Twilio (not Meta)"""
+    """Webhook verification for Twilio"""
     if hub_mode == "subscribe" and hub_verify_token == settings.VERIFY_TOKEN:
         logger.info("✅ Webhook verified successfully")
         return PlainTextResponse(hub_challenge)
@@ -68,44 +69,40 @@ async def verify_webhook(
 async def handle_webhook(request: Request):
     """Handle incoming WhatsApp messages from Twilio"""
     try:
-        # Twilio sends form-encoded data, NOT JSON
         form_data = await request.form()
-        logger.info(f"Received Twilio webhook: {dict(form_data)}")
-        
-        # Safely extract phone number
-        from_number = form_data.get("From", "")
-        if not from_number:
-            logger.error("No 'From' field in webhook")
-            return JSONResponse(content={"status": "ok"})
-        
-        # Clean phone number (remove whatsapp: prefix and leading +)
-        clean_number = from_number.replace("whatsapp:", "").lstrip("+")
-        if not clean_number:
-            logger.error("Empty phone number after cleaning")
-            return JSONResponse(content={"status": "ok"})
-            
+        from_number = form_data.get("From", "").replace("whatsapp:", "").lstrip("+")
         message_body = form_data.get("Body", "").strip()
-        if not message_body:
-            logger.info("No message body")
+        
+        if not from_number or not message_body:
             return JSONResponse(content={"status": "ok"})
         
-        logger.info(f"Processing message from {clean_number}: {message_body}")
+        logger.info(f"Processing message from {from_number}: {message_body}")
         
         # Generate AI response
-        ai_response = ai_service.generate_response(message_body, clean_number)
+        ai_response = ai_service.generate_response(message_body, from_number)
         
         # Send reply via Twilio
-        success = whatsapp_service.send_message(clean_number, ai_response["message"])
+        success = whatsapp_service.send_message(from_number, ai_response["message"])
         if success:
-            logger.info(f"✅ Reply sent to {clean_number}")
+            logger.info(f"✅ Reply sent to {from_number}")
         else:
-            logger.error(f"❌ Failed to send reply to {clean_number}")
+            logger.error(f"❌ Failed to send reply to {from_number}")
             
         return JSONResponse(content={"status": "ok"})
         
     except Exception as e:
         logger.error(f"💥 Error handling webhook: {e}", exc_info=True)
         return JSONResponse(content={"status": "error", "message": str(e)})
+
+
+@app.post("/upload-pdf")
+async def upload_pdf(file: UploadFile):
+    """Upload PDF to update knowledge base"""
+    os.makedirs("data/college_docs", exist_ok=True)
+    with open(f"data/college_docs/{file.filename}", "wb") as f:
+        f.write(await file.read())
+    ai_service.kb = KnowledgeBase()  # Reload knowledge base
+    return {"status": "PDF uploaded and processed"}
 
 
 @app.get("/health")
@@ -122,12 +119,11 @@ async def health_check():
 
 @app.get("/health/detailed")
 async def detailed_health():
-    # Note: These methods should be implemented in your service classes
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "services": {
-            "twilio_api": True,  # Implement real check if needed
+            "twilio_api": True,
             "groq_api": True,
             "chromadb": True
         },
