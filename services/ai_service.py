@@ -79,7 +79,7 @@ Please answer the user's question based on the context provided. If the context 
                 HumanMessage(content=user_prompt)
             ]
             
-            response = self.llm(messages)
+            response = self.llm.invoke(messages)
             
             return {
                 "message": response.content,

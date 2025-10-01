@@ -61,27 +61,28 @@ async def verify_webhook(
 @limiter.limit("10/minute")
 async def handle_webhook(request: Request):
     try:
-        # Twilio sends form-encoded data, NOT JSON
         form_data = await request.form()
         logger.info(f"Received Twilio webhook: {dict(form_data)}")
         
-        # Extract message info from form data
-        from_number = form_data.get("From", "").replace("whatsapp:", "")
-        message_body = form_data.get("Body", "")
-        message_id = form_data.get("MessageSid", "")
-        
+        # Safely extract phone number
+        from_number = form_data.get("From", "")
+        if from_number:
+            from_number = from_number.replace("whatsapp:", "").lstrip("+")
+        else:
+            logger.error("No 'From' field in webhook")
+            return {"status": "ok"}
+            
+        message_body = form_data.get("Body", "").strip()
         if not message_body:
-            logger.info("No message body found")
+            logger.info("No message body")
             return {"status": "ok"}
         
         logger.info(f"Processing message from {from_number}: {message_body}")
         
-        # Mark message as read (Twilio auto-reads, so skip if not needed)
-        
         # Generate AI response
         ai_response = ai_service.generate_response(message_body, from_number)
         
-        # Send reply via Twilio
+        # Send reply
         success = whatsapp_service.send_message(from_number, ai_response["message"])
         if success:
             logger.info(f"✅ Reply sent to {from_number}")
@@ -93,7 +94,7 @@ async def handle_webhook(request: Request):
     except Exception as e:
         logger.error(f"💥 Error handling webhook: {e}")
         return {"status": "error", "message": str(e)}
-
+    
 # @app.post("/webhook")
 # async def handle_webhook(request: Request):
 #     try:
