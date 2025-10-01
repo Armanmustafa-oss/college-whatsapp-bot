@@ -13,101 +13,42 @@ class WhatsAppService:
         self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
         self.twilio_number = os.getenv("TWILIO_WHATSAPP_NUMBER")  # e.g., "whatsapp:+14155238886"
 
-    def send_message(self, to_phone_number: str, message: str) -> bool:
-        if not to_phone_number:
-            logger.error("Cannot send message: to_phone_number is empty")
+def send_message(self, to_phone_number: str, message: str) -> bool:
+    if not to_phone_number:
+        logger.error("to_phone_number is empty")
+        return False
+
+    # Safely get Twilio number from env
+    twilio_num = os.getenv("TWILIO_WHATSAPP_NUMBER", "").replace("whatsapp:", "").lstrip("+")
+    if not twilio_num:
+        logger.error("TWILIO_WHATSAPP_NUMBER is not set")
+        return False
+
+    headers = {
+        "Authorization": f"Basic {base64.b64encode(f'{self.account_sid}:{self.auth_token}'.encode()).decode()}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    data = {
+        "To": f"whatsapp:+{to_phone_number.lstrip('+')}",
+        "From": f"whatsapp:+{twilio_num}",
+        "Body": message
+    }
+    try:
+        response = requests.post(
+            f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
+            headers=headers,
+            data=data
+        )
+        if response.status_code == 201:
+            logger.info(f"📤 Twilio reply sent to {to_phone_number}")
+            return True
+        else:
+            logger.error(f"❌ Twilio error: {response.status_code} - {response.text}")
             return False
-        
-        headers = {
-            "Authorization": f"Basic {base64.b64encode(f'{self.account_sid}:{self.auth_token}'.encode()).decode()}",
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        data = {
-            "To": f"whatsapp:+{to_phone_number.lstrip('+')}",
-            "From": f"whatsapp:{self.twilio_number.lstrip('whatsapp:')}",
-            "Body": message
-        }
-        try:
-            response = requests.post(
-                f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
-                headers=headers,
-                data=data
-            )
-            if response.status_code == 201:
-                logger.info(f"  Twilio reply sent to {to_phone_number}")
-                return True
-            else:
-                logger.error(f"  Twilio error: {response.status_code} - {response.text}")
-                return False
-        except Exception as e:
-            logger.error(f"  Twilio send failed: {e}")
-            return False
+    except Exception as e:
+        logger.error(f"💥 Twilio send failed: {e}")
+        return False
 
-
-# def send_message(self, to_phone_number: str, message: str) -> bool:
-#     headers = {
-#         "Authorization": f"Basic {base64.b64encode(f'{self.account_sid}:{self.auth_token}'.encode()).decode()}",
-#         "Content-Type": "application/x-www-form-urlencoded"
-#     }
-#     data = {
-#         "To": f"whatsapp:+{to_phone_number.lstrip('+')}",
-#         "From": f"whatsapp:+{self.twilio_number.lstrip('+')}",
-#         "Body": message
-#     }
-#     try:
-#         response = requests.post(
-#             "https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json",
-#             headers=headers,
-#             data=data
-#         )
-#         return response.status_code == 201
-#     except Exception as e:
-#         logger.error(f"Twilio send failed: {e}")
-#         return False 
-
-    # def send_message(self, to_phone_number: str, message: str) -> bool:
-    #     """
-    #     Send a text message to a WhatsApp user
-        
-    #     Args:
-    #         to_phone_number: Recipient's phone number (with country code)
-    #         message: Text message to send
-            
-    #     Returns:
-    #         bool: True if successful, False otherwise
-    #     """
-    #     headers = {
-    #         "Authorization": f"Bearer {self.access_token}",
-    #         "Content-Type": "application/json"
-    #     }
-        
-    #     payload = {
-    #         "messaging_product": "whatsapp",
-    #         "to": to_phone_number,
-    #         "type": "text",
-    #         "text": {
-    #             "body": message
-    #         }
-    #     }
-        
-    #     try:
-    #         response = requests.post(
-    #             self.api_url,
-    #             headers=headers,
-    #             json=payload,
-    #             timeout=10
-    #         )
-            
-    #         if response.status_code == 200:
-    #             logger.info(f"Message sent successfully to {to_phone_number}")
-    #             return True
-    #         else:
-    #             logger.error(f"Failed to send message: {response.status_code} - {response.text}")
-    #             return False
-                
-    #     except requests.RequestException as e:
-    #         logger.error(f"Error sending WhatsApp message: {e}")
-    #         return False
     
     def parse_incoming_message(self, webhook_data: dict) -> Optional[dict]:
         """
