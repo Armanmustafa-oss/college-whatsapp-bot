@@ -54,3 +54,4 @@ Answer:
             "language": lang,
             "sources": [meta["source"] for meta in results["metadatas"][0]] if results["metadatas"][0] else []
         }
+ai_service = AIService()
