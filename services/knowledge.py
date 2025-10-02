@@ -1,4 +1,5 @@
 # app/services/knowledge.py
+from sentence_transformers import SentenceTransformer
 import os
 import chromadb
 from chromadb.utils import embedding_functions
