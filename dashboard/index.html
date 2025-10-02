@@ -12,10 +12,9 @@
     <ul id="topQuestions"></ul>
 
     <script>
-        // Initialize Supabase
         const supabase = window.supabase.createClient(
-            process.env.SUPABASE_URL,
-            process.env.SUPABASE_KEY
+            process.env.SUPABASE_URL || "https://nlqeexipesmiefqipeqg.supabase.co",
+            process.env.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scWVleGlwZXNtaWVmcWlwZXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMTIyNzMsImV4cCI6MjA3NDg4ODI3M30.mwGW3Q3GqQC4BKu7F17X_khH8KOiIZ6lwU_e45Pe4co"
         );
     </script>
 
