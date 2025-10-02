@@ -12,10 +12,10 @@ from slowapi.util import get_remote_address
 
 from .config import settings
 
-# ✅ CORRECT ABSOLUTE IMPORTS
-from ..services.whatsapp_service import whatsapp_service
-from ..services.ai_service import ai_service
-from ..services.knowledge import KnowledgeBase
+# ✅ CORRECT ABSOLUTE IMPORTS (NO ".." or ".")
+from services.whatsapp_service import whatsapp_service
+from services.ai_service import ai_service
+from services.knowledge import KnowledgeBase
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
