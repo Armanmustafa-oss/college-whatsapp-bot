@@ -2,10 +2,10 @@ fastapi==0.115.0
 uvicorn==0.34.0
 python-dotenv==1.0.1
 pydantic==2.10.0
-pydantic-settings==2.10.1  # ← Updated
-requests==2.32.5           # ← Updated
+pydantic-settings==2.10.1
+requests==2.32.5
 openai==1.58.0
-langchain==0.3.29          # ← Updated
+langchain==0.3.14          # ← Use latest available
 langchain-openai==0.2.13
 langchain-groq==0.2.0
 chromadb==0.5.21
