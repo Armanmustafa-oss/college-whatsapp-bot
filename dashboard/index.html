@@ -3,7 +3,7 @@
 <head>
     <title>College Bot Analytics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/supabase@2.39.7/dist/umd/supabase.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <h1>📊 College Bot Analytics</h1>
@@ -12,58 +12,59 @@
     <ul id="topQuestions"></ul>
 
     <script>
+        // Initialize Supabase with Vercel environment variables
         const supabase = window.supabase.createClient(
-            process.env.SUPABASE_URL || "https://nlqeexipesmiefqipeqg.supabase.co",
-            process.env.SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scWVleGlwZXNtaWVmcWlwZXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMTIyNzMsImV4cCI6MjA3NDg4ODI3M30.mwGW3Q3GqQC4BKu7F17X_khH8KOiIZ6lwU_e45Pe4co"
+            'https://nlqeexipesmiefqipeqg.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5scWVleGlwZXNtaWVmcWlwZXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMTIyNzMsImV4cCI6MjA3NDg4ODI3M30.mwGW3Q3GqQC4BKu7F17X_khH8KOiIZ6lwU_e45Pe4co'
         );
-    </script>
 
-        // Fetch analytics
         async function loadAnalytics() {
             const { data, error } = await supabase
                 .from('conversations')
-                .select('question, language, timestamp')
+                .select('question, language')
                 .order('timestamp', { ascending: false })
                 .limit(100);
 
-            if (error) console.error(error);
-            else {
-                // Group by language
-                const langCounts = {};
-                data.forEach(row => {
-                    langCounts[row.language] = (langCounts[row.language] || 0) + 1;
-                });
-
-                // Render chart
-                const ctx = document.getElementById('messagesChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(langCounts),
-                        datasets: [{
-                            label: 'Messages by Language',
-                            data: Object.values(langCounts),
-                            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
-                        }]
-                    }
-                });
-
-                // Top questions
-                const questionCounts = {};
-                data.forEach(row => {
-                    questionCounts[row.question] = (questionCounts[row.question] || 0) + 1;
-                });
-                const sortedQuestions = Object.entries(questionCounts)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 5);
-
-                const list = document.getElementById('topQuestions');
-                sortedQuestions.forEach(([question, count]) => {
-                    const li = document.createElement('li');
-                    li.textContent = `${question} (${count} times)`;
-                    list.appendChild(li);
-                });
+            if (error) {
+                console.error('Supabase error:', error);
+                return;
             }
+
+            // Group by language
+            const langCounts = {};
+            data.forEach(row => {
+                langCounts[row.language] = (langCounts[row.language] || 0) + 1;
+            });
+
+            // Render chart
+            const ctx = document.getElementById('messagesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(langCounts),
+                    datasets: [{
+                        label: 'Messages by Language',
+                        data: Object.values(langCounts),
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                    }]
+                }
+            });
+
+            // Top questions
+            const questionCounts = {};
+            data.forEach(row => {
+                questionCounts[row.question] = (questionCounts[row.question] || 0) + 1;
+            });
+            const sortedQuestions = Object.entries(questionCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const list = document.getElementById('topQuestions');
+            sortedQuestions.forEach(([question, count]) => {
+                const li = document.createElement('li');
+                li.textContent = `${question} (${count} times)`;
+                list.appendChild(li);
+            });
         }
 
         loadAnalytics();
