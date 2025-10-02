@@ -14,3 +14,4 @@ PyPDF2==3.0.1
 python-multipart==0.0.12
 httpx>=0.27.0,<0.28
 slowapi==0.1.8
+sentence-transformers==2.7.0
