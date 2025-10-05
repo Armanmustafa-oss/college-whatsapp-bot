@@ -2,16 +2,12 @@ fastapi==0.115.0
 uvicorn==0.34.0
 python-dotenv==1.0.1
 pydantic==2.10.0
-pydantic-settings==2.10.1
 requests==2.32.5
 openai==1.58.0
-langchain==0.3.14          # ← Use latest available
+langchain==0.3.14
 langchain-openai==0.2.13
-langchain-groq==0.2.0
 chromadb==0.5.21
 supabase==2.10.0
 PyPDF2==3.0.1
 python-multipart==0.0.12
-httpx>=0.27.0,<0.28
-slowapi==0.1.8
-sentence-transformers==2.7.0
+httpx==0.27.2
