@@ -1,40 +1,54 @@
+# app/config.py
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class Settings:
-    # WhatsApp Business API
-    WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
-    VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "test")
-    WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
-    
-    # OpenAI
+    # Twilio WhatsApp API (used instead of Meta)
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+    TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")  # e.g., +14155238886
+
+    # Groq / OpenAI
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    
-    # Supabase
+
+    # Webhook verification (still used for /webhook GET)
+    VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "test")
+
+    # Supabase (optional)
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-    
+
     # App
     DEBUG = os.getenv("DEBUG", "False").lower() == "true"
     HOST = os.getenv("HOST", "0.0.0.0")
     PORT = int(os.getenv("PORT", 8000))
-    
-    # WhatsApp API endpoints
-    WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"    
-    # Validate required settings
+
+    # Validation: Only require Twilio + AI key
     @classmethod
     def validate(cls):
-        required = [
-            cls.WHATSAPP_ACCESS_TOKEN,
-            cls.WHATSAPP_PHONE_NUMBER_ID,
-            cls.OPENAI_API_KEY
+        # Require Twilio credentials
+        twilio_vars = [
+            cls.TWILIO_ACCOUNT_SID,
+            cls.TWILIO_AUTH_TOKEN,
+            cls.TWILIO_WHATSAPP_NUMBER
         ]
-        missing = [name for name, value in zip(
-            ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "OPENAI_API_KEY"],
-            required
-        ) if not value]
-        
-        if missing:
-            raise ValueError(f"Missing required environment variables: {missing}")
+        twilio_names = [
+            "TWILIO_ACCOUNT_SID",
+            "TWILIO_AUTH_TOKEN",
+            "TWILIO_WHATSAPP_NUMBER"
+        ]
+
+        # Require at least one AI key
+        ai_key = cls.GROQ_API_KEY or cls.OPENAI_API_KEY
+        if not ai_key:
+            raise ValueError("Missing required AI key: set GROQ_API_KEY or OPENAI_API_KEY")
+
+        # Check Twilio vars
+        missing_twilio = [name for name, val in zip(twilio_names, twilio_vars) if not val]
+        if missing_twilio:
+            raise ValueError(f"Missing required Twilio environment variables: {missing_twilio}")
 
 settings = Settings()
