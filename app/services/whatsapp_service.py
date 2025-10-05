@@ -1,10 +1,8 @@
 # app/services/whatsapp_service.py
-
-import base64
-import requests
 import logging
 import os
 from typing import Optional
+from twilio.rest import Client
 
 logger = logging.getLogger(__name__)
 
@@ -13,74 +11,56 @@ class WhatsAppService:
     def __init__(self):
         self.account_sid = os.getenv("TWILIO_ACCOUNT_SID")
         self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-        self.twilio_number = os.getenv("TWILIO_WHATSAPP_NUMBER", "")  # e.g., "whatsapp:+14155238886"
+        self.from_whatsapp_number = os.getenv("TWILIO_WHATSAPP_NUMBER")  # e.g., "+14155238886"
+
+        if not self.account_sid or not self.auth_token or not self.from_whatsapp_number:
+            logger.error("Missing Twilio credentials in environment variables")
+            raise ValueError("Twilio credentials not configured")
+
+        self.client = Client(self.account_sid, self.auth_token)
 
     def send_message(self, to_phone_number: str, message: str) -> bool:
         """Send WhatsApp message via Twilio"""
-        if not to_phone_number:
-            logger.error("to_phone_number is empty")
-            return False
-
-        # Clean Twilio number from env
-        twilio_num = self.twilio_number.replace("whatsapp:", "").lstrip("+")
-        if not twilio_num:
-            logger.error("TWILIO_WHATSAPP_NUMBER is not set or invalid")
-            return False
-
-        # Clean recipient number
-        clean_to = to_phone_number.lstrip("+")
-        if not clean_to:
-            logger.error("Recipient phone number is invalid")
-            return False
-
-        # Prepare auth
-        auth_str = f"{self.account_sid}:{self.auth_token}"
-        auth_b64 = base64.b64encode(auth_str.encode()).decode()
-
-        headers = {
-            "Authorization": f"Basic {auth_b64}",
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        data = {
-            "To": f"whatsapp:+{clean_to}",
-            "From": f"whatsapp:+{twilio_num}",
-            "Body": message
-        }
-
         try:
-            url = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json"
-            response = requests.post(url, headers=headers, data=data, timeout=10)
-            
-            if response.status_code == 201:
-                logger.info(f"📤 Twilio reply sent to +{clean_to}")
-                return True
-            else:
-                logger.error(f"❌ Twilio error {response.status_code}: {response.text}")
-                return False
-                
+            # Ensure numbers are in E.164 format: +1234567890
+            to_num = to_phone_number.lstrip("+")
+            from_num = self.from_whatsapp_number.lstrip("+")
+
+            self.client.messages.create(
+                from_=f"whatsapp:+{from_num}",
+                to=f"whatsapp:+{to_num}",
+                body=message
+            )
+            logger.info(f"📤 Message sent to +{to_num} via Twilio")
+            return True
         except Exception as e:
-            logger.error(f"💥 Twilio send failed: {e}")
+            logger.error(f"❌ Twilio send failed: {e}")
             return False
 
     def parse_incoming_message(self, webhook_data: dict) -> Optional[dict]:
-        """Parse incoming Twilio webhook data"""
+        """
+        Parse incoming Twilio webhook (form-encoded, but FastAPI can parse as dict)
+        Expected keys: 'From', 'MessageSid', 'Timestamp', 'Body'
+        """
         try:
-            # Twilio sends form data, but we handle JSON in main.py
-            # This method is kept for compatibility
+            from_number = webhook_data.get("From", "").replace("whatsapp:", "")
             return {
-                "from_number": webhook_data.get("From", "").replace("whatsapp:", ""),
+                "from_number": from_number,
                 "message_id": webhook_data.get("MessageSid", ""),
                 "timestamp": webhook_data.get("Timestamp", ""),
                 "message_type": "text",
                 "text_body": webhook_data.get("Body", "")
             }
         except Exception as e:
-            logger.error(f"Error parsing message: {e}")
+            logger.error(f"Error parsing Twilio webhook: {e}")
             return None
 
     def mark_message_as_read(self, message_id: str) -> bool:
-        """Twilio auto-reads messages — this is a no-op"""
-        logger.info("Twilio auto-reads messages — skipping mark-as-read")
+        """
+        Twilio does not require explicit read receipts.
+        Messages are considered read by default.
+        """
+        logger.debug("Twilio does not require mark-as-read — skipping")
         return True
 
 
