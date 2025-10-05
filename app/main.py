@@ -13,9 +13,9 @@ from slowapi.util import get_remote_address
 from .config import settings
 
 # ✅ CORRECT ABSOLUTE IMPORTS (NO ".." or ".")
-from services.whatsapp_service import whatsapp_service
-from services.ai_service import ai_service  # ✅ This now works because root is a package
-from services.rag_service import rag_service  # ✅ This now works because root is a package
+from app.services.whatsapp_service import whatsapp_service
+from app.services.ai_service import ai_service  # ✅ This now works because root is a package
+from app.services.rag_service import rag_service  # ✅ This now works because root is a package
 
 
 # Configure logging
