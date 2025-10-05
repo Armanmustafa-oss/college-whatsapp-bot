@@ -15,7 +15,8 @@ from .config import settings
 # ✅ CORRECT ABSOLUTE IMPORTS (NO ".." or ".")
 from services.whatsapp_service import whatsapp_service
 from services.ai_service import ai_service
-from services.knowledge import KnowledgeBase
+from services.ai_service import ai_service
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
