@@ -1,12 +1,13 @@
 # app/services/rag_service.py
 import chromadb
-import json
 import os
 from typing import List, Dict
 from PyPDF2 import PdfReader
 import logging
+from chromadb.errors import InvalidCollectionException
 
 logger = logging.getLogger(__name__)
+
 
 class RAGService:
     def __init__(self):
@@ -15,17 +16,17 @@ class RAGService:
         try:
             self.collection = self.client.get_collection(self.collection_name)
             logger.info("Loaded existing ChromaDB collection")
-        except ValueError:
+        except (ValueError, InvalidCollectionException):
             self.collection = self.client.create_collection(
                 name=self.collection_name,
                 metadata={"hnsw:space": "cosine"}
             )
             logger.info("Created new ChromaDB collection")
-            self._load_all_documents()  # ← Load real PDFs + dummy data
+            self._load_all_documents()
 
     def _load_dummy_data(self):
-        """Fallback dummy data (always included)"""
-        dummy_data = [
+        """Load dummy college data into the vector database"""
+        return [
             {
                 "id": "admission_1",
                 "content": "To apply for admission, students need to submit their high school transcripts, passport copy, and English proficiency test scores.",
@@ -57,7 +58,6 @@ class RAGService:
                 "title": "Tuition Fees"
             }
         ]
-        return dummy_data
 
     def _extract_text_from_pdf(self, pdf_path: str) -> str:
         """Extract text from a single PDF file"""
@@ -65,21 +65,23 @@ class RAGService:
             reader = PdfReader(pdf_path)
             text = ""
             for page in reader.pages:
-                text += page.extract_text() or ""
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted + "\n"
             return text
         except Exception as e:
             logger.error(f"Error reading PDF {pdf_path}: {e}")
             return ""
 
     def _split_text(self, text: str, chunk_size: int = 500) -> List[str]:
-        """Simple text splitter"""
+        """Split text into chunks for better vector search"""
         words = text.split()
         chunks = []
         current_chunk = []
         current_length = 0
         for word in words:
             current_chunk.append(word)
-            current_length += len(word) + 1
+            current_length += len(word) + 1  # +1 for space
             if current_length >= chunk_size:
                 chunks.append(" ".join(current_chunk))
                 current_chunk = []
@@ -92,7 +94,7 @@ class RAGService:
         """Load both dummy data AND real PDFs from data/college_docs/"""
         all_docs = []
 
-        # 1. Add dummy data
+        # 1. Add dummy data (always included)
         all_docs.extend(self._load_dummy_data())
 
         # 2. Add real PDFs
@@ -105,20 +107,19 @@ class RAGService:
                     text = self._extract_text_from_pdf(pdf_path)
                     if text.strip():
                         chunks = self._split_text(text, chunk_size=500)
-                        category = "general"  # or infer from filename
                         title = os.path.splitext(filename)[0]
                         for i, chunk in enumerate(chunks):
                             doc_id = f"{title}_{i}".replace(" ", "_").lower()
                             all_docs.append({
                                 "id": doc_id,
                                 "content": chunk,
-                                "category": category,
+                                "category": "general",
                                 "title": title
                             })
         else:
             logger.warning(f"PDF directory not found: {pdf_dir}")
 
-        # 3. Add all to ChromaDB
+        # 3. Add all documents to ChromaDB
         if all_docs:
             self.collection.add(
                 documents=[doc["content"] for doc in all_docs],
@@ -133,7 +134,7 @@ class RAGService:
             logger.warning("No documents loaded into ChromaDB")
 
     def search_documents(self, query: str, n_results: int = 3) -> List[Dict]:
-        """Search using ChromaDB (no local embeddings needed)"""
+        """Search for relevant documents based on user query"""
         try:
             results = self.collection.query(
                 query_texts=[query],
@@ -151,7 +152,7 @@ class RAGService:
         except Exception as e:
             logger.error(f"Error searching documents: {e}")
             return []
-    
 
-# Global instance
+
+# Global instance (required for blueprint-style imports)
 rag_service = RAGService()
