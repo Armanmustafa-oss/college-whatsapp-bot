@@ -20,8 +20,7 @@ class Settings:
     PORT = int(os.getenv("PORT", 8000))
     
     # WhatsApp API endpoints
-    WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
-    
+    WHATSAPP_API_URL = f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"    
     # Validate required settings
     @classmethod
     def validate(cls):
