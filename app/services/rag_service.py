@@ -151,3 +151,7 @@ class RAGService:
         except Exception as e:
             logger.error(f"Error searching documents: {e}")
             return []
+    
+
+# Global instance
+rag_service = RAGService()

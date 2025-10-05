@@ -2,7 +2,7 @@
 import os
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
-from services.rag_service import rag_service  # ✅ Also works
+from app.services.rag_service import rag_service  # ✅ Also works
 
 class AIService:
     def __init__(self):

@@ -14,7 +14,7 @@ from .config import settings
 
 # ✅ CORRECT ABSOLUTE IMPORTS (NO ".." or ".")
 from app.services.whatsapp_service import whatsapp_service
-from services.ai_service import ai_service  
+from app.services.ai_service import ai_service  
 from app.services.rag_service import rag_service  
 
 
