@@ -14,8 +14,8 @@ from .config import settings
 
 # ✅ CORRECT ABSOLUTE IMPORTS (NO ".." or ".")
 from services.whatsapp_service import whatsapp_service
-from services.ai_service import ai_service
-from services.ai_service import ai_service
+from services.ai_service import ai_service  # ✅ This now works because root is a package
+from services.rag_service import rag_service  # ✅ This now works because root is a package
 
 
 # Configure logging
@@ -96,14 +96,14 @@ async def handle_webhook(request: Request):
         return JSONResponse(content={"status": "error", "message": str(e)})
 
 
-@app.post("/upload-pdf")
-async def upload_pdf(file: UploadFile):
-    """Upload PDF to update knowledge base"""
-    os.makedirs("data/college_docs", exist_ok=True)
-    with open(f"data/college_docs/{file.filename}", "wb") as f:
-        f.write(await file.read())
-    ai_service.kb = KnowledgeBase()  # Reload knowledge base
-    return {"status": "PDF uploaded and processed"}
+# @app.post("/upload-pdf")
+# async def upload_pdf(file: UploadFile):
+#     """Upload PDF to update knowledge base"""
+#     os.makedirs("data/college_docs", exist_ok=True)
+#     with open(f"data/college_docs/{file.filename}", "wb") as f:
+#         f.write(await file.read())
+#     ai_service.kb = KnowledgeBase()  # Reload knowledge base
+#     return {"status": "PDF uploaded and processed"}
 
 
 @app.get("/health")
