@@ -1,4 +1,5 @@
 # app/services/monitoring.py
+import hashlib
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 import os
@@ -20,17 +21,15 @@ supabase = create_client(
 )
 
 def log_conversation(phone: str, message: str, response: str, duration: float):
-    """Log to Supabase with GDPR-safe phone hash"""
-    import hashlib
     phone_hash = hashlib.sha256(phone.encode()).hexdigest()
     try:
         supabase.table("conversations").insert({
             "phone_hash": phone_hash,
             "message_text": message[:500],
             "bot_response": response[:500],
-            "response_time": duration,
+            "response_time": round(duration, 2),
             "timestamp": datetime.now().isoformat(),
-            "language": "auto"  # enhance later
+            "language": "auto"
         }).execute()
     except Exception as e:
         sentry_sdk.capture_exception(e)
