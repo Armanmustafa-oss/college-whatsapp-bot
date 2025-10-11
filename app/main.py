@@ -1,4 +1,8 @@
 # app/main.py
+import time
+
+import sentry_sdk
+from app.services.monitoring import log_conversation
 from datetime import datetime
 import logging
 import os
@@ -68,7 +72,7 @@ async def verify_webhook(
 @app.post("/webhook")
 @limiter.limit("10/minute")
 async def handle_webhook(request: Request):
-    """Handle incoming WhatsApp messages from Twilio"""
+    start_time = time.time()
     try:
         form_data = await request.form()
         from_number = form_data.get("From", "").replace("whatsapp:", "").lstrip("+")
@@ -79,21 +83,16 @@ async def handle_webhook(request: Request):
         
         logger.info(f"Processing message from {from_number}: {message_body}")
         
-        # Generate AI response
         ai_response = ai_service.generate_response(message_body, from_number)
-        
-        # Send reply via Twilio
         success = whatsapp_service.send_message(from_number, ai_response["message"])
-        if success:
-            logger.info(f"✅ Reply sent to {from_number}")
-        else:
-            logger.error(f"❌ Failed to send reply to {from_number}")
-            
-        return JSONResponse(content={"status": "ok"})
         
+        duration = time.time() - start_time
+        log_conversation(from_number, message_body, ai_response["message"], duration)
+        
+        return JSONResponse(content={"status": "ok"})
     except Exception as e:
-        logger.error(f"💥 Error handling webhook: {e}", exc_info=True)
-        return JSONResponse(content={"status": "error", "message": str(e)})
+        sentry_sdk.capture_exception(e)
+        return JSONResponse(content={"status": "error"})
 
 
 # @app.post("/upload-pdf")

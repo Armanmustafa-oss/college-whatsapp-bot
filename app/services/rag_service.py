@@ -133,25 +133,29 @@ class RAGService:
         else:
             logger.warning("No documents loaded into ChromaDB")
 
+    # In rag_service.py, replace search_documents
     def search_documents(self, query: str, n_results: int = 3) -> List[Dict]:
-        """Search for relevant documents based on user query"""
-        try:
-            results = self.collection.query(
-                query_texts=[query],
-                n_results=n_results
-            )
-            documents = []
-            if results["documents"] and results["documents"][0]:
-                for i in range(len(results["documents"][0])):
-                    documents.append({
-                        "content": results["documents"][0][i],
+        from app.services.semantic_enhancer import SemanticEnhancer
+        enhancer = SemanticEnhancer()
+        queries = enhancer.expand_query(query)
+    
+        all_results = []
+        for q in queries:
+            try:
+                results = self.collection.query(query_texts=[q], n_results=n_results)
+                if results["documents"][0]:
+                    for i, doc in enumerate(results["documents"][0]):
+                        all_results.append({
+                        "content": doc,
                         "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
-                        "distance": results["distances"][0][i] if results["distances"] else 0
+                        "distance": results["distances"][0][i] if results["distances"] else 1.0
                     })
-            return documents
-        except Exception as e:
-            logger.error(f"Error searching documents: {e}")
-            return []
+            except Exception as e:
+                continue
+    
+    # Sort by distance (relevance) and return top n_results
+        all_results.sort(key=lambda x: x["distance"])
+        return all_results[:n_results]
 
 
 # Global instance (required for blueprint-style imports)
