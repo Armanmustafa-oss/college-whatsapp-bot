@@ -62,7 +62,7 @@ with gr.Blocks(title="College Bot Admin") as demo:
 # Launch
 if __name__ == "__main__":
     demo.launch(
-        server_name="0.0.0.0",
-        server_port=int(os.getenv("PORT", 7860)),
-        auth=("admin", os.getenv("DASHBOARD_PASSWORD", "college123"))
+    server_name="0.0.0.0",
+    server_port=int(os.getenv("PORT", 7860)),
+    auth=("admin", os.getenv("DASHBOARD_PASSWORD", "college123"))
     )
