@@ -1,11 +1,14 @@
 # dashboard/app.py
 import os
-import gradio as gr
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from supabase import create_client
 from dotenv import load_dotenv
+import gradio as gr
 
 load_dotenv()
 
+# Supabase
 supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 
 def fetch_metrics():
@@ -28,9 +31,11 @@ def fetch_logs():
             logs.append(f"[{time_str}] User: {row['message_text']}\n→ Bot: {row['bot_response']}\n")
         return "\n".join(reversed(logs)) if logs else "No data"
     except:
-        return "Error loading logs"
+        return "Error"
 
-with gr.Blocks() as demo:
+# Gradio interface
+with gr.Blocks(title="College Bot Admin") as demo:
+    gr.Markdown("# 🎓 College WhatsApp Bot Dashboard")
     total_msg = gr.Number(label="Total Messages", value=0)
     logs = gr.Textbox(label="Recent Conversations", lines=12)
     refresh = gr.Button("🔄 Refresh")
@@ -41,11 +46,13 @@ with gr.Blocks() as demo:
     refresh.click(update, outputs=[total_msg, logs])
     demo.load(update, outputs=[total_msg, logs])
 
+# FastAPI app
+app = FastAPI()
+
+# Mount Gradio as a sub-app
+app = gr.mount_gradio_app(app, demo, path="/")
+
 if __name__ == "__main__":
-    # 🔥 THIS IS THE FIX 🔥
-    port = int(os.environ.get("PORT", 7860))  # Must use os.environ, not os.getenv
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=port,
-        auth=("admin", os.getenv("DASHBOARD_PASSWORD", "college123"))
-    )
+    import uvicorn
+    port = int(os.getenv("PORT", 7860))
+    uvicorn.run(app, host="0.0.0.0", port=port)
