@@ -1,4 +1,24 @@
 # app/main.py
+from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi.responses import PlainTextResponse
+import logging
+from app.config import settings
+
+# 🔥 ADD SENTRY INITIALIZATION HERE 🔥
+try:
+    from app.services.sentry_config import SentryManager
+    sentry_manager = SentryManager()  # This initializes Sentry
+    print("✅ Sentry initialized")
+except Exception as e:
+    print(f"❌ Sentry initialization failed: {e}")
+
+# Rest of your existing code...
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+settings.validate()
+app = FastAPI(...)
+
+# app/main.py
 import time
 
 import sentry_sdk
