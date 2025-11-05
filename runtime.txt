@@ -1,0 +1,3 @@
+# runtime.txt specifies the Python runtime version for deployment platforms
+# This ensures the correct Python version is used during the build and runtime process.
+python-3.11

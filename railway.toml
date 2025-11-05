@@ -1,0 +1,22 @@
+# Railway deployment configuration file
+# Defines how the application is built and deployed on Railway
+
+[build]
+# Use Nixpacks builder for flexible builds
+builder = "NIXPACKS"
+
+[deploy]
+# Command to start the main bot application process
+startCommand = "uvicorn bot.main:app --host 0.0.0.0 --port $PORT"
+# Path for the health check endpoint
+healthcheckPath = "/health"
+# Timeout for the health check in seconds
+healthcheckTimeout = 100
+# Policy for restarting the service if it crashes
+restartPolicyType = "on_failure"
+# Maximum number of restart attempts
+restartPolicyMaxRetries = 10
+
+[env]
+# Specify the Python version to use
+PYTHON_VERSION = "3.11"

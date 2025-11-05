@@ -1,0 +1,66 @@
+name: Deploy to Railway
+
+# Trigger this workflow on pushes to the main branch
+on:
+  push:
+    branches: [ main ]
+
+# Concurrency group ensures only one deployment runs at a time per branch,
+# cancelling any in-progress ones if a new commit is pushed.
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Define environment variables available to all jobs in this workflow
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }} # Railway token stored as a GitHub secret
+  # Add other environment variables here if needed for the workflow itself (not the app)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+
+    # Ensure the job only runs if the 'tests' workflow (or any other required checks) pass.
+    # Replace 'Run Tests' with the exact name of your test workflow's status check if it differs.
+    # You can find the check name in the "Checks" tab of a pull request or commit.
+    # It's often the workflow file name without the `.yml` extension.
+    # For the workflow above, the check might be named 'tests / test' or just 'test'.
+    # The exact name depends on the job name within the tests.yml file.
+    # In the above tests.yml, the job is named 'test', so the check is likely 'test'.
+    # If your tests workflow has a job named 'run-tests', the check would be 'run-tests'.
+    # It's safest to check the actual status checks in GitHub after running the tests workflow once.
+    # For now, assuming the job in tests.yml is named 'test':
+    needs: test # This links to the 'test' job in the 'tests' workflow
+
+    # Only run deployment on the main branch and after tests pass
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    # 1. Check out the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v4 # Use the latest version of the checkout action
+
+    # 2. Download the Railway CLI
+    - name: Download Railway CLI
+      run: |
+        curl -fsSL https://railway.app/install.sh | sh
+
+    # 3. Deploy the project using Railway CLI
+    # This command will push the code and trigger a new deployment on Railway,
+    # using the `railway.toml` and `Procfile` configuration.
+    # It assumes your Railway project is linked to this repository.
+    # The RAILWAY_TOKEN secret is used by the CLI for authentication.
+    - name: Deploy to Railway
+      run: |
+        railway up --detach # Use --detach to run the deployment asynchronously and not wait for build logs
+        # Optionally, you can wait for the build to complete and check its status.
+        # railway up # Without --detach, it waits and exits with the build status.
+
+    # Optional: Add a step to verify the deployment status on Railway if Railway CLI supports it
+    # or ping the deployed service's health check endpoint.
+    # - name: Verify Deployment
+    #   run: |
+    #     # Example: Ping the health check endpoint
+    #     # Replace YOUR_RAILWAY_APP_URL with your actual deployed URL or fetch it dynamically
+    #     sleep 30 # Wait a bit for the service to start
+    #     curl -f https://your-app-name.up.railway.app/health # Replace with actual URL and path

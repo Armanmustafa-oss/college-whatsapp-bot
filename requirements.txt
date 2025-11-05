@@ -1,0 +1,47 @@
+# Main Python Dependencies for College WhatsApp Bot
+# Generated via 'pip freeze' after installing required packages.
+# Ensure compatibility with runtime.txt (Python 3.11)
+
+# Web Framework & ASGI Server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0 # Includes uvloop, httptools for performance
+
+# Environment Variable Management
+python-dotenv==1.0.1
+
+# WhatsApp Integration
+twilio==8.11.0
+
+# Database & Supabase Client
+supabase==2.3.4
+# psycopg2-binary is often needed by Supabase client or for raw SQL connections
+psycopg2-binary==2.9.9
+
+# AI & Machine Learning / RAG
+groq==0.4.1
+# Langchain (optional, might be used for complex RAG chains, but direct ChromaDB use is also possible)
+# langchain==0.1.6
+chromadb==0.4.22
+sentence-transformers==2.3.1
+
+# Monitoring & Error Tracking
+sentry-sdk[fastapi]==1.40.0
+
+# Dashboard & Data Visualization (if using FastAPI dashboard)
+plotly==5.18.0
+pandas==2.2.0
+
+# Utilities
+python-multipart==0.0.6 # Required for file uploads if needed
+httpx==0.26.0 # Often used by FastAPI internally, also useful for async HTTP calls (e.g., to Groq)
+pydantic==2.5.3 # Data validation and settings management
+toml==0.10.2 # For parsing TOML files if needed (e.g., config)
+
+# Text Processing & Security
+bleach==6.1.0 # For HTML sanitization in response enhancer
+phonenumbers==8.13.28 # For phone number formatting/validation
+
+# For Testing (if not in a separate test requirements file)
+pytest==8.0.0
+pytest-asyncio==0.23.3
+fastapi-testclient==0.2.0

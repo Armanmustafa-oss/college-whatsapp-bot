@@ -1,0 +1,57 @@
+# Frequently Asked Questions (FAQ) - Supplemental to Comprehensive PDF
+
+# This file contains specific, high-frequency Q&A pairs that might be easier to manage separately
+# or act as quick overrides/clarifications to information potentially found in the main PDF.
+# The RAG system will index this along with the PDF.
+
+---
+
+## General Inquiries
+
+**Q: What is the main phone number for the college?**
+A: The main switchboard number is [Phone Number].
+
+**Q: How do I access the student portal?**
+A: Visit [Student Portal URL] and log in with your credentials.
+
+---
+
+## Admissions
+
+**Q: What is the application deadline for the next Fall semester?**
+A: The deadline for freshman applications is January 15th, and for transfer students, it is March 1st. Please check the admissions website for the most current year's dates.
+
+**Q: Do you require standardized test scores (SAT/ACT)?**
+A: We are currently test-optional. Please see our admissions website for the most up-to-date policy.
+
+---
+
+## Financial Aid
+
+**Q: How do I apply for financial aid?**
+A: Complete the FAFSA (Free Application for Federal Student Aid) as soon as possible after October 1st. Our school code is [School Code].
+
+**Q: When are tuition bills due?**
+A: Tuition bills are typically sent out a few weeks before the start of each semester. The due date is usually before the semester begins. Check your student email and the bursar's website for specific dates.
+
+---
+
+## Academic Life
+
+**Q: How do I change my major?**
+A: Visit the Academic Advising office or contact your current advisor to discuss and complete the necessary forms.
+
+**Q: Where can I find my class schedule?**
+A: Your class schedule is available on the Student Portal.
+
+---
+
+## Campus Life
+
+**Q: What are the dining hall hours?**
+A: Dining halls are generally open Monday to Friday: Breakfast 7:00-10:00 AM, Lunch 11:30 AM-2:00 PM, Dinner 5:00-8:00 PM. Weekend hours may vary. Check the dining services website.
+
+**Q: How do I get a parking permit?**
+A: Parking permits can be purchased through the Campus Safety or Transportation Services website.
+
+---
