@@ -15,7 +15,8 @@ twilio==8.11.0
 # Database & Supabase Client
 supabase==2.3.4
 # psycopg2-binary is often needed by Supabase client or for raw SQL connections
-psycopg2-binary==2.9.9
+# Using a version constraint to get a pre-compiled wheel suitable for Windows
+psycopg2-binary>=2.9.9
 
 # AI & Machine Learning / RAG
 groq==0.4.1
@@ -33,7 +34,7 @@ pandas==2.2.0
 
 # Utilities
 python-multipart==0.0.6 # Required for file uploads if needed
-httpx==0.26.0 # Often used by FastAPI internally, also useful for async HTTP calls (e.g., to Groq)
+httpx>=0.24,<0.26 # Often used by FastAPI internally, also useful for async HTTP calls (e.g., to Groq) and is the underlying library for TestClient
 pydantic==2.5.3 # Data validation and settings management
 toml==0.10.2 # For parsing TOML files if needed (e.g., config)
 
@@ -44,4 +45,8 @@ phonenumbers==8.13.28 # For phone number formatting/validation
 # For Testing (if not in a separate test requirements file)
 pytest==8.0.0
 pytest-asyncio==0.23.3
-fastapi-testclient==0.2.0
+# Use httpx for making requests in tests, often alongside TestClient
+# The FastAPI TestClient is usually imported from fastapi.testclient, not as a separate package
+# Example usage in tests:
+# from fastapi.testclient import TestClient
+# client = TestClient(app) # where app is your FastAPI instance
