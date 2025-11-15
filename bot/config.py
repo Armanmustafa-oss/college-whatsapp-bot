@@ -8,11 +8,17 @@ Handles environment variables, secrets, and runtime settings with robust error h
 import os
 import logging
 from typing import Optional
-from dotenv import load_dotenv
+# Optional: support .env files if python-dotenv is installed; otherwise define a no-op loader.
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:
+    def load_dotenv(*args, **kwargs):
+        # python-dotenv is not installed; skip loading .env files.
+        return False
 import secrets
 import string
 
-# Load environment variables from .env file
+# Load environment variables from .env file (if python-dotenv is available)
 load_dotenv()
 
 logger = logging.getLogger(__name__)
