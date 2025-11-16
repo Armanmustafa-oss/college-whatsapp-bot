@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
 
     # Supabase Client
     try:
-        supabase: SupabaseClient = create_client(SUPABASE_URL, SUPABASE_KEY)
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         logger.info("✅ Connected to Supabase successfully.")
     except Exception as e:
         logger.critical(f"❌ Failed to connect to Supabase: {e}")
