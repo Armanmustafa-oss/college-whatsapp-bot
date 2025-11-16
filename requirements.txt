@@ -50,3 +50,6 @@ pytest-asyncio==0.23.3
 # Example usage in tests:
 # from fastapi.testclient import TestClient
 # client = TestClient(app) # where app is your FastAPI instance
+
+PyPDF2==4.0.0 # For PDF text extraction in document loader
+python-docx==1.1.0 # For DOCX text extraction in document loader
