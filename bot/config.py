@@ -11,10 +11,12 @@ from typing import Optional
 # Optional: support .env files if python-dotenv is installed; otherwise define a no-op loader.
 try:
     from dotenv import load_dotenv  # type: ignore
-except ImportError:
+except Exception:
     def load_dotenv(*args, **kwargs):
         # python-dotenv is not installed; skip loading .env files.
         return False
+import secrets
+import string
 
 # Load environment variables from .env file (if python-dotenv is available)
 load_dotenv()
@@ -38,19 +40,10 @@ def _validate_api_key(key: str, name: str) -> str:
     return key
 
 def _validate_twilio_number(number: str) -> str:
-    """
-    Validates a Twilio WhatsApp number format.
-    Accepts formats like '+1234567890' or 'whatsapp:+1234567890'.
-    """
-    if not number:
-        raise ConfigError(f"Invalid or missing TWILIO_WHATSAPP_NUMBER: {number}. Cannot be empty.")
-
-    # Remove the 'whatsapp:' prefix if present
-    clean_number = number.removeprefix('whatsapp:')
-
-    if not clean_number.startswith('+'):
-        raise ConfigError(f"Invalid or missing TWILIO_WHATSAPP_NUMBER: {number}. Must start with '+' after removing 'whatsapp:' prefix if present.")
-    return number # Return the original number (with 'whatsapp:' if it was there)
+    """Validates a Twilio WhatsApp number format (basic check)."""
+    if not number or not number.startswith('+'):
+        raise ConfigError(f"Invalid or missing TWILIO_WHATSAPP_NUMBER: {number}. Must start with '+'.")
+    return number
 
 def _get_supabase_url() -> str:
     """Retrieves and validates SUPABASE_URL."""
@@ -88,7 +81,6 @@ def _get_twilio_credentials() -> tuple[str, str, str]:
 
     _validate_api_key(sid, "TWILIO_ACCOUNT_SID")
     _validate_api_key(token, "TWILIO_AUTH_TOKEN")
-    # This now accepts both '+...' and 'whatsapp:+...'
     _validate_twilio_number(number)
 
     return sid, token, number
