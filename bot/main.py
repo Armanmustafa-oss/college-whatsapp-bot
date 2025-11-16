@@ -23,7 +23,7 @@ from typing import Dict, List
 from bot.config import (
     TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER,
     SUPABASE_URL, SUPABASE_KEY, GROQ_API_KEY,
-    SENTRY_DSN, ENVIRONMENT, PORT,
+    SENTRY_DSN, ENVIRONMENT, PORT, # Ensure ENVIRONMENT is imported
     RATE_LIMIT_MESSAGES, RATE_LIMIT_WINDOW,
     BOT_BEHAVIOR
 )
@@ -47,11 +47,12 @@ async def lifespan(app: FastAPI):
     Manages application startup and shutdown tasks.
     Initializes shared resources like clients, engines, etc.
     """
-    logger.info("🚀 Starting up College WhatsApp Bot API...")
-    
-    # --- Initialize Shared Resources ---
     global twilio_client, supabase, prompt_engine, response_enhancer, retriever, performance_tracker
-    
+
+    logger.info("🚀 Starting up College WhatsApp Bot API...")
+
+    # --- Initialize Shared Resources ---
+
     # Twilio Client
     twilio_client = TwilioRestClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     logger.info("✅ Twilio client initialized.")
@@ -84,11 +85,12 @@ async def lifespan(app: FastAPI):
     if SENTRY_DSN:
         sentry_sdk.init(
             dsn=SENTRY_DSN,
-            environment=ENVIRONMENT,
+            environment=ENVIRONMENT, # Pass the environment here for Sentry
             traces_sample_rate=1.0 if ENVIRONMENT == "production" else 0.1, # Lower sample rate for non-prod
         )
         logger.info("✅ Sentry initialized.")
-        SentryManager.initialize(sentry_sdk) # Assuming a static init method
+        # Call the SentryManager's static initialize method with both required arguments
+        SentryManager.initialize(sentry_sdk, ENVIRONMENT)
     else:
         logger.warning("⚠️ SENTRY_DSN not found. Sentry monitoring is disabled.")
 
@@ -154,6 +156,7 @@ async def call_groq_async(system_prompt: str, user_prompt: str) -> str:
     start_time = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=30.0) as client: # 30s timeout
+            # FIXED: Removed trailing spaces from the URL
             response = await client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
             response.raise_for_status()
             result = response.json()
