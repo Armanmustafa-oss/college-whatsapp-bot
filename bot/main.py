@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
         )
         logger.info("✅ Sentry initialized.")
         # Call the SentryManager's static initialize method with both required arguments
-        SentryManager.initialize(sentry_sdk, ENVIRONMENT)
+        SentryManager.initialize(ENVIRONMENT) # Pass only the environment, rely on global SDK state
     else:
         logger.warning("⚠️ SENTRY_DSN not found. Sentry monitoring is disabled.")
 
