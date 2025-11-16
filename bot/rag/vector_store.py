@@ -13,7 +13,7 @@ import chromadb
 from chromadb.config import Settings
 from chromadb.api.types import QueryResult
 from sentence_transformers import SentenceTransformer
-import PyPDF2 # For PDF processing
+import pypdf # For PDF processing
 import docx # For Word processing
 from bot.config import ENVIRONMENT # For environment-specific settings
 
@@ -49,7 +49,7 @@ class VectorStore:
         text = ""
         try:
             with open(file_path, 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
+                reader = pypdf.PdfReader(file)
                 for page in reader.pages:
                     text += page.extract_text() + "\n"
         except Exception as e:
