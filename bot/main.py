@@ -85,19 +85,15 @@ async def lifespan(app: FastAPI):
     if SENTRY_DSN:
         sentry_sdk.init(
             dsn=SENTRY_DSN,
-            environment=ENVIRONMENT, # Pass the environment here for Sentry
+            environment=ENVIRONMENT,
             traces_sample_rate=1.0 if ENVIRONMENT == "production" else 0.1, # Lower sample rate for non-prod
+            # Add other Sentry init options here if needed
         )
         logger.info("✅ Sentry initialized.")
-        # Call the SentryManager's static initialize method with both required arguments
-        SentryManager.initialize(ENVIRONMENT) # Pass only the environment, rely on global SDK state
+        # Call SentryManager.initialize with only the environment
+        SentryManager.initialize(ENVIRONMENT) # Pass only the environment string
     else:
         logger.warning("⚠️ SENTRY_DSN not found. Sentry monitoring is disabled.")
-
-    yield # Hand over control to the application
-
-    # --- Shutdown tasks ---
-    logger.info("🛑 Shutting down College WhatsApp Bot API...")
 
 # --- Initialize FastAPI app with lifespan ---
 app = FastAPI(
