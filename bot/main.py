@@ -95,6 +95,11 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ SENTRY_DSN not found. Sentry monitoring is disabled.")
 
+    yield # Hand over control to the application
+
+    # --- Shutdown tasks ---
+    logger.info("🛑 Shutting down College WhatsApp Bot API...")
+
 # --- Initialize FastAPI app with lifespan ---
 app = FastAPI(
     title="College WhatsApp Bot API",
@@ -173,9 +178,24 @@ async def call_groq_async(system_prompt: str, user_prompt: str) -> str:
 # --- Background Task: Log Interaction to Supabase ---
 async def log_interaction_to_supabase_async(
     user_phone: str, user_message: str, bot_response: str, context_used: str,
-    intent: Intent, sentiment: Sentiment, urgency: Urgency, session_id: str
+    intent, sentiment, urgency, session_id: str # Accept raw values to check them
 ):
     """Asynchronously logs the conversation interaction to Supabase."""
+    # --- ADD CHECK: Ensure parameters are Enum instances ---
+    # Import Enum classes again for type checking within this function if needed
+    # from bot.prompts.prompt_engine import Intent, Sentiment, Urgency
+
+    if not isinstance(intent, Intent):
+        logger.error(f"log_interaction_to_supabase_async: intent is not an Intent enum member: {type(intent)}, value: {intent}")
+        # Handle error or assign a default
+        intent = Intent.OTHER # Fallback
+    if not isinstance(sentiment, Sentiment):
+         logger.error(f"log_interaction_to_supabase_async: sentiment is not a Sentiment enum member: {type(sentiment)}, value: {sentiment}")
+         sentiment = Sentiment.NEUTRAL # Fallback
+    if not isinstance(urgency, Urgency):
+         logger.error(f"log_interaction_to_supabase_async: urgency is not an Urgency enum member: {type(urgency)}, value: {urgency}")
+         urgency = Urgency.LOW # Fallback
+
     log_entry = {
         "user_phone": user_phone,
         "user_message": user_message,
@@ -184,9 +204,9 @@ async def log_interaction_to_supabase_async(
         "context_used": context_used[:5000], # Truncate if very long, adjust size as needed
         "language_code": "en", # Adjust based on detection
         "session_id": session_id,
-        "intent": intent.value,
-        "sentiment": sentiment.value,
-        "urgency": urgency.value
+        "intent": intent.value, # This should now work if intent is an Enum instance
+        "sentiment": sentiment.value, # This should now work if sentiment is an Enum instance
+        "urgency": urgency.value # This should now work if urgency is an Enum instance
     }
     try:
         # Use Supabase client to insert
@@ -244,9 +264,9 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
             conversation_history=[], # Implement history lookup if needed
             retrieved_context=context_str,
             user_profile=user_profile,
-            intent=detected_intent,
-            sentiment=detected_sentiment,
-            urgency=detected_urgency,
+            intent=detected_intent, # Pass the Enum instance
+            sentiment=detected_sentiment, # Pass the Enum instance
+            urgency=detected_urgency, # Pass the Enum instance
             timestamp=datetime.now(timezone.utc),
             language_code="en" # Adjust based on detection
         )
@@ -277,7 +297,7 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         background_tasks.add_task(
             log_interaction_to_supabase_async,
             sender_number, message_body, enhanced_response, context_str,
-            detected_intent, detected_sentiment, detected_urgency, session_id
+            detected_intent, detected_sentiment, detected_urgency, session_id # Pass the Enum instances here
         )
 
         # --- Log Performance Metric ---
