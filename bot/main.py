@@ -27,7 +27,7 @@ from bot.config import (
     RATE_LIMIT_MESSAGES, RATE_LIMIT_WINDOW,
     BOT_BEHAVIOR
 )
-from bot.prompts.prompt_engine import PromptEngine, ConversationContext, Intent, Sentiment, Urgency
+from bot.prompts.prompt_engine import PromptEngine, ConversationContext, Intent, Sentiment, Urgency # Import Enum classes
 from bot.response_quality.enhancer import ResponseEnhancer
 from bot.rag.retriever import Retriever # Assuming you create this next
 from monitoring.sentry_config import SentryManager # Assuming this is correctly implemented
@@ -178,24 +178,46 @@ async def call_groq_async(system_prompt: str, user_prompt: str) -> str:
 # --- Background Task: Log Interaction to Supabase ---
 async def log_interaction_to_supabase_async(
     user_phone: str, user_message: str, bot_response: str, context_used: str,
-    intent, sentiment, urgency, session_id: str # Accept raw values to check them
+    intent_raw, sentiment_raw, urgency_raw, session_id: str # Accept raw values (could be Enum instances or classes)
 ):
-    """Asynchronously logs the conversation interaction to Supabase."""
-    # --- ADD CHECK: Ensure parameters are Enum instances ---
+    """
+    Asynchronously logs the conversation interaction to Supabase.
+    Includes checks to ensure Enum instances are used correctly before accessing .value.
+    """
+    # --- ADD CHECKS: Ensure parameters are Enum *instances*, not the classes themselves ---
     # Import Enum classes again for type checking within this function if needed
-    # from bot.prompts.prompt_engine import Intent, Sentiment, Urgency
+    # from bot.prompts.prompt_engine import Intent, Sentiment, Urgency # Avoid circular imports if possible, assume available in scope
 
-    if not isinstance(intent, Intent):
-        logger.error(f"log_interaction_to_supabase_async: intent is not an Intent enum member: {type(intent)}, value: {intent}")
-        # Handle error or assign a default
-        intent = Intent.OTHER # Fallback
-    if not isinstance(sentiment, Sentiment):
-         logger.error(f"log_interaction_to_supabase_async: sentiment is not a Sentiment enum member: {type(sentiment)}, value: {sentiment}")
-         sentiment = Sentiment.NEUTRAL # Fallback
-    if not isinstance(urgency, Urgency):
-         logger.error(f"log_interaction_to_supabase_async: urgency is not an Urgency enum member: {type(urgency)}, value: {urgency}")
-         urgency = Urgency.LOW # Fallback
+    # --- Corrected Variable Assignment and Type Checking ---
+    # Use 'is' to check if the passed value is the *class* itself
+    if intent_raw is Intent:
+        logger.error(f"log_interaction_to_supabase_async: 'intent_raw' is the Intent *class*, not an instance. Defaulting to Intent.OTHER.")
+        intent = Intent.OTHER
+    elif isinstance(intent_raw, Intent): # Check if it's an *instance* of the Intent enum
+        intent = intent_raw
+    else:
+        logger.error(f"log_interaction_to_supabase_async: 'intent_raw' is neither the Intent class nor an Intent instance ({type(intent_raw)}). Defaulting to Intent.OTHER.")
+        intent = Intent.OTHER
 
+    if sentiment_raw is Sentiment:
+        logger.error(f"log_interaction_to_supabase_async: 'sentiment_raw' is the Sentiment *class*, not an instance. Defaulting to Sentiment.NEUTRAL.")
+        sentiment = Sentiment.NEUTRAL
+    elif isinstance(sentiment_raw, Sentiment): # Check if it's an *instance* of the Sentiment enum
+        sentiment = sentiment_raw
+    else:
+        logger.error(f"log_interaction_to_supabase_async: 'sentiment_raw' is neither the Sentiment class nor a Sentiment instance ({type(sentiment_raw)}). Defaulting to Sentiment.NEUTRAL.")
+        sentiment = Sentiment.NEUTRAL
+
+    if urgency_raw is Urgency:
+        logger.error(f"log_interaction_to_supabase_async: 'urgency_raw' is the Urgency *class*, not an instance. Defaulting to Urgency.LOW.")
+        urgency = Urgency.LOW
+    elif isinstance(urgency_raw, Urgency): # Check if it's an *instance* of the Urgency enum
+        urgency = urgency_raw
+    else:
+        logger.error(f"log_interaction_to_supabase_async: 'urgency_raw' is neither the Urgency class nor an Urgency instance ({type(urgency_raw)}). Defaulting to Urgency.LOW.")
+        urgency = Urgency.LOW
+
+    # --- Build the log entry dictionary using the *checked* Enum instances ---
     log_entry = {
         "user_phone": user_phone,
         "user_message": user_message,
@@ -204,9 +226,9 @@ async def log_interaction_to_supabase_async(
         "context_used": context_used[:5000], # Truncate if very long, adjust size as needed
         "language_code": "en", # Adjust based on detection
         "session_id": session_id,
-        "intent": intent.value, # This should now work if intent is an Enum instance
-        "sentiment": sentiment.value, # This should now work if sentiment is an Enum instance
-        "urgency": urgency.value # This should now work if urgency is an Enum instance
+        "intent": intent.value, # Access .value only after confirming 'intent' is an Enum instance
+        "sentiment": sentiment.value, # Access .value only after confirming 'sentiment' is an Enum instance
+        "urgency": urgency.value # Access .value only after confirming 'urgency' is an Enum instance
     }
     try:
         # Use Supabase client to insert
@@ -224,6 +246,7 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
     start_time = time.perf_counter()
     session_id = f"sess_{int(time.time())}_{hash(request.client.host) % 10000}" # Simple session ID
     sender_number = None
+    message_body = None # Initialize to avoid potential UnboundLocalError in the except block
     try:
         form_data = await request.form()
         message_body = form_data.get('Body', '').strip()
@@ -251,11 +274,12 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         # --- Intent & Sentiment Classification (Placeholder - could be done by LLM or separate model) ---
         # For now, assume a simple classification based on keywords or use the LLM prompt
         # Let's use the LLM to help classify intent and sentiment as part of the prompt
-        intent_classification_prompt = prompt_engine.generate_intent_classification_prompt(message_body, "en")
+        # intent_classification_prompt = prompt_engine.generate_intent_classification_prompt(message_body, "en")
         # This would require a separate call or be integrated into the main prompt. Let's assume a simple rule-based approach for now or fetch from RAG metadata.
-        detected_intent = Intent.OTHER # Placeholder - Implement logic
-        detected_sentiment = Sentiment.NEUTRAL # Placeholder - Implement logic
-        detected_urgency = Urgency.LOW # Placeholder - Implement logic based on keywords/sentiment
+        # --- CORRECTED: Assign Enum *instances*, not the classes ---
+        detected_intent = Intent.OTHER # Placeholder - Implement logic. This is an *instance* of Intent.
+        detected_sentiment = Sentiment.NEUTRAL # Placeholder - Implement logic. This is an *instance* of Sentiment.
+        detected_urgency = Urgency.LOW # Placeholder - Implement logic based on keywords/sentiment. This is an *instance* of Urgency.
 
         # --- Build Conversation Context Object ---
         conversation_context_obj = ConversationContext(
@@ -264,9 +288,9 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
             conversation_history=[], # Implement history lookup if needed
             retrieved_context=context_str,
             user_profile=user_profile,
-            intent=detected_intent, # Pass the Enum instance
-            sentiment=detected_sentiment, # Pass the Enum instance
-            urgency=detected_urgency, # Pass the Enum instance
+            intent=detected_intent, # Pass the Enum *instance*
+            sentiment=detected_sentiment, # Pass the Enum *instance*
+            urgency=detected_urgency, # Pass the Enum *instance*
             timestamp=datetime.now(timezone.utc),
             language_code="en" # Adjust based on detection
         )
@@ -281,7 +305,7 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         # --- Response Enhancement ---
         context_for_enhancer = {
             "language_code": "en",
-            "intent": detected_intent.value
+            "intent": detected_intent.value # Pass the *value* of the Enum instance (e.g., "other")
         }
         enhanced_response = response_enhancer.enhance(raw_response, context_for_enhancer)
 
@@ -289,20 +313,21 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         twilio_client.messages.create(
             body=enhanced_response,
             from_=TWILIO_WHATSAPP_NUMBER,
-            to=sender_number
+            to=sender_number # Use sender_number from form_data
         )
         logger.info(f"({session_id}) Sent response to {sender_number}")
 
         # --- Schedule Background Logging Task ---
+        # Pass the Enum *instances* (detected_intent, detected_sentiment, detected_urgency), not the classes
         background_tasks.add_task(
             log_interaction_to_supabase_async,
             sender_number, message_body, enhanced_response, context_str,
-            detected_intent, detected_sentiment, detected_urgency, session_id # Pass the Enum instances here
+            detected_intent, detected_sentiment, detected_urgency, session_id # Pass Enum *instances*
         )
 
         # --- Log Performance Metric ---
         duration = time.perf_counter() - start_time
-        performance_tracker.log_response_time(duration, detected_intent.value)
+        performance_tracker.log_response_time(duration, detected_intent.value) # Use the *value* for tracking
 
         return PlainTextResponse("OK")
 
@@ -318,7 +343,11 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         sentry_sdk.capture_exception(e) # Capture in Sentry if active
         # Optionally send a generic error message to user via Twilio
         # twilio_client.messages.create(...)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        # Include message_body in the error detail if it's available, otherwise log it separately
+        error_detail = f"Internal Server Error"
+        if message_body:
+             logger.error(f"({session_id}) Error occurred while processing message: '{message_body[:100]}...'") # Log truncated message for context
+        raise HTTPException(status_code=500, detail=error_detail)
 
 # --- Health Check Endpoint ---
 @app.get("/health")
