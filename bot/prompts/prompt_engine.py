@@ -171,40 +171,76 @@ class PromptEngine:
         """Selects the appropriate persona based on the detected intent."""
         return self.personas.get(intent, self.personas["default"])
 
+    # Continue defining PromptEngine methods below (removed accidental nested class declaration)
+
     def generate_system_prompt(self, context: ConversationContext) -> str:
         """
-        Generates the comprehensive system prompt for the AI model.
-
-        Args:
-            context (ConversationContext): The rich context object.
-
-        Returns:
-            str: The formatted system prompt string.
+        Generates the system prompt incorporating conversation context and RAG context.
         """
-        persona_info = self._select_persona(context.intent)
-        conversation_summary = self._summarize_conversation_history(context.conversation_history)
+        # Example template string - this is where the KeyError likely originates
+        # Ensure the placeholders match the *attribute names* on the ConversationContext object
+        # or the *keys* you put into the dictionary used for .format().
+        # If ConversationContext has attributes 'sentiment', 'intent', 'urgency',
+        # and they are Enum instances, you need to access .value.
+        # The template might look like:
+        # template = f"""
+        # You are an assistant for {{college_name}}.
+        # Current intent: {{intent}}. # This expects 'intent' key in format dict
+        # Detected sentiment: {{sentiment}}. # This expects 'sentiment' key in format dict
+        # Perceived urgency: {{urgency}}. # This expects 'urgency' key in format dict
+        # RAG Context: {{context_used}}
+        # ...
+        # """
 
-        # Get the base template for the user's language
-        template = self.system_prompt_templates.get(context.language_code, self.system_prompt_templates["en"])
+        # --- CORRECTED APPROACH: Extract values correctly from ConversationContext object ---
+        # The ConversationContext object has attributes like .sentiment, .intent, .urgency
+        # which hold Enum *instances*. Access their .value.
+        # Build the prompt string using the values from the context object directly.
+        # This avoids relying on a dictionary key lookup that might be missing.
 
-        # Format the template with dynamic context
-        system_prompt = template.format(
-            persona_name=persona_info["name"],
-            college_name=self.college_name,
-            persona_style=persona_info["style"],
-            persona_tone=persona_info["tone"],
-            user_profile=json.dumps(context.user_profile, indent=2), # Or format more readably
-            detected_intent=context.intent.value,
-            detected_sentiment=context.sentiment.value,
-            detected_urgency=context.urgency.value,
-            session_id=context.session_id,
-            current_time=context.timestamp.isoformat(), # ISO format for clarity
-            retrieved_context=context.retrieved_context,
-            conversation_summary=conversation_summary,
-            human_contact_info=self.human_contact_info.get(context.language_code, self.human_contact_info["en"]).format(college_domain="your_college_domain.edu") # Replace with actual domain
-        )
-        logger.debug(f"Generated system prompt for session {context.session_id} (Intent: {context.intent.value}, Sentiment: {context.sentiment.value})")
-        return system_prompt
+        # Example 1: Direct string formatting (if template is simple enough)
+        # system_prompt = f"""
+        # You are an assistant for {self.college_name}.
+        # Current intent: {context.intent.value}.
+        # Detected sentiment: {context.sentiment.value}.
+        # Perceived urgency: {context.urgency.value}.
+        # RAG Context: {context.retrieved_context}
+        # ...
+        # """
+
+        # Example 2: Using a template string with .format() (more common)
+        # Define the template string *inside* the method or as a class attribute.
+        # Ensure the keys in the .format() call match the attribute values accessed from the context object.
+        template = """You are an official AI assistant for {college_name}, providing accurate and helpful information to students, staff, and visitors. Your responses must be based solely on the provided context. If the context doesn't contain the answer, state clearly that the information is not available in the provided documents and suggest contacting the relevant college department directly. Be polite, concise, and professional.
+
+        Current intent: {intent}.
+        Detected sentiment: {sentiment}.
+        Perceived urgency: {urgency}.
+        RAG Context: {context_used}
+        College Name: {college_name}
+        User Profile: {user_profile}
+        Language: {language_code}
+        Timestamp: {timestamp}
+        """ # Define the template string
+
+        # Build the dictionary for .format() using the *values* from the context object's Enum attributes
+        # The keys in this dictionary must match the placeholders in the 'template' string.
+        format_dict = {
+            "college_name": self.college_name,
+            "intent": context.intent.value, # Access .value on the Enum instance stored in context.intent
+            "sentiment": context.sentiment.value, # Access .value on the Enum instance stored in context.sentiment
+            "urgency": context.urgency.value, # Access .value on the Enum instance stored in context.urgency
+            "context_used": context.retrieved_context,
+            "user_profile": context.user_profile,
+            "language_code": context.language_code,
+            "timestamp": context.timestamp.isoformat() # Format timestamp appropriately
+        }
+
+        # Use the dictionary to fill the template string
+        system_prompt = template.format(**format_dict) # ** unpacks the dictionary as keyword arguments
+
+        return system_prompt # Return the filled prompt string
+
 
     def generate_intent_classification_prompt(self, message: str, language: str = "en") -> str:
         """

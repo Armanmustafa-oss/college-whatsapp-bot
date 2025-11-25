@@ -304,25 +304,30 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         # The code below assigns instances correctly, but let's add checks just before the logging call to be absolutely sure.
 
         # Placeholder logic - Implement actual classification
+        # Ensure these are the *instances* of the Enum classes defined in prompt_engine.py
+        # Example: from bot.prompts.prompt_engine import Intent, Sentiment, Urgency
+        # Make sure these are imported correctly at the top of this file.
         detected_intent = Intent.OTHER # This should be an Enum *instance*
         detected_sentiment = Sentiment.NEUTRAL # This should be an Enum *instance*
         detected_urgency = Urgency.LOW # This should be an Enum *instance*
 
-        # --- ADD CHECKS: Before passing to background task (Redundant now, but good practice) ---
-        # Verify types just before passing to background task or any place .value is accessed later
-        # These checks confirm the *type* of the variables before they are passed to the background task.
+        # --- ADD CHECKS: Before passing to prompt_engine (or any place .value is accessed later) ---
+        # Verify types just before passing to prompt_engine or any place .value is accessed later
+        # These checks confirm the *type* of the variables before they are used.
         # This is a safeguard. The assignment above should be correct, but if something went wrong elsewhere, this catches it.
         if not isinstance(detected_intent, Intent):
-             logger.error(f"handle_webhook: detected_intent is not an Intent enum member: {type(detected_intent)}, value: {detected_intent}. Defaulting to Intent.OTHER.")
+             logger.error(f"({session_id}) handle_webhook: detected_intent is not an Intent enum member: {type(detected_intent)}, value: {detected_intent}. Defaulting to Intent.OTHER.")
              detected_intent = Intent.OTHER # Fallback to an instance
         if not isinstance(detected_sentiment, Sentiment):
-             logger.error(f"handle_webhook: detected_sentiment is not a Sentiment enum member: {type(detected_sentiment)}, value: {detected_sentiment}. Defaulting to Sentiment.NEUTRAL.")
+             logger.error(f"({session_id}) handle_webhook: detected_sentiment is not a Sentiment enum member: {type(detected_sentiment)}, value: {detected_sentiment}. Defaulting to Sentiment.NEUTRAL.")
              detected_sentiment = Sentiment.NEUTRAL # Fallback to an instance
         if not isinstance(detected_urgency, Urgency):
-             logger.error(f"handle_webhook: detected_urgency is not an Urgency enum member: {type(detected_urgency)}, value: {detected_urgency}. Defaulting to Urgency.LOW.")
+             logger.error(f"({session_id}) handle_webhook: detected_urgency is not an Urgency enum member: {type(detected_urgency)}, value: {detected_urgency}. Defaulting to Urgency.LOW.")
              detected_urgency = Urgency.LOW # Fallback to an instance
 
         # --- Build Conversation Context Object ---
+        # Ensure the ConversationContext is defined to accept Enum instances for intent, sentiment, urgency
+        # in bot.prompts.prompt_engine.py. The fields should be typed like: intent: Intent, sentiment: Sentiment, urgency: Urgency
         conversation_context_obj = ConversationContext(
             user_id=sender_number, # Use phone number as user ID for simplicity, consider a real user ID from DB
             session_id=session_id,
@@ -337,11 +342,13 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         )
 
         # --- Prompt Engineering ---
+        # This call is where the KeyError: 'Sentiment' likely occurs if PromptEngine is not handling the ConversationContext correctly.
+        # Ensure prompt_engine.generate_system_prompt expects a ConversationContext object or extracts fields correctly.
         system_prompt = prompt_engine.generate_system_prompt(conversation_context_obj)
         user_prompt = prompt_engine.build_user_prompt(message_body, language_code="en")
 
         # --- AI Generation ---
-        raw_response = await call_groq_async(system_prompt, user_prompt) # Call the correctly named function
+        raw_response = await call_groq_async(system_prompt, user_prompt)
 
         # --- Response Enhancement ---
         context_for_enhancer = {
