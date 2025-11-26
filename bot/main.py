@@ -269,7 +269,7 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         try:
             context_list = await retriever.retrieve_async(message_body) # Gets list of dicts or other format from retriever
             # Safe extraction of context with proper error handling
-            if context_list and isinstance(context_list, list):
+            if isinstance(context_list, list) and len(context_list) > 0: # Check if it's a list AND not empty
                 # Handle both dict and string items in the list
                 context_parts = []
                 for ctx in context_list:
@@ -282,10 +282,10 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
                     else:
                         logger.warning(f"({session_id}) Unexpected context item type: {type(ctx)}")
                         context_parts.append(str(ctx))
-                context_str = "\n".join(context_parts) if context_parts else "No relevant information found in the knowledge base."
+                context_str = "\n".join(context_parts) if context_parts else "No relevant information found in the knowledge base." # This handles case where list exists but all items resulted in empty strings
             else:
                 context_str = "No relevant information found in the knowledge base."
-                logger.warning(f"({session_id}) Retriever returned unexpected format or empty: {type(context_list)}")
+                logger.warning(f"({session_id}) Retriever returned unexpected format or empty list: {type(context_list)}") # Clarified message
         except Exception as e:
             logger.error(f"({session_id}) Error during RAG retrieval: {e}", exc_info=True)
             context_str = "No relevant information found in the knowledge base."
@@ -344,8 +344,9 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         # --- Prompt Engineering ---
         # This call is where the KeyError: 'Sentiment' likely occurs if PromptEngine is not handling the ConversationContext correctly.
         # Ensure prompt_engine.generate_system_prompt expects a ConversationContext object or extracts fields correctly.
+        # --- Prompt Engineering ---
         system_prompt = prompt_engine.generate_system_prompt(conversation_context_obj)
-        user_prompt = prompt_engine.build_user_prompt(message_body, language_code="en")
+        user_prompt = prompt_engine.build_user_message_prompt(message_body, language_code="en") # <-- Use the correct method name
 
         # --- AI Generation ---
         raw_response = await call_groq_async(system_prompt, user_prompt)

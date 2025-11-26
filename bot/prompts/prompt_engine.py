@@ -345,6 +345,22 @@ class PromptEngine:
              logger.info(f"Escalation triggered for session {context.session_id} (Intent: {context.intent.value}, Sentiment: {context.sentiment.value}). Providing escalation fallback.")
         return fallbacks.get(language, fallbacks["en"]).get(error_type, fallbacks["en"]["general"])
 
+    def build_user_message_prompt(self, user_input: str, language_code: str = "en") -> str:
+        """
+        Builds the user message portion of the prompt, potentially incorporating language hints.
+        """
+        # Example: Simply return the user input, or add language hinting if needed by the LLM
+        # This might be where you add language-specific instructions or formatting hints for the user message
+        # before it goes to the LLM.
+        # For now, a simple pass-through with potential language hinting.
+        if language_code == "tr":
+            return f"(Lütfen Türkçe yanıt verin) {user_input}"
+        elif language_code == "ar":
+            return f"(يرجى الرد باللغة العربية) {user_input}"
+        else: # Default to English or if language is unknown
+            return user_input
+        
+        
 # Example usage (if run as main):
 # if __name__ == "__main__":
 #     pe = PromptEngine(college_name="InnovateU", knowledge_base_metadata={"last_updated": "2024-01-01"})
