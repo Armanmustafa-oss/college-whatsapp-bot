@@ -40,10 +40,29 @@ def _validate_api_key(key: str, name: str) -> str:
     return key
 
 def _validate_twilio_number(number: str) -> str:
-    """Validates a Twilio WhatsApp number format (basic check)."""
-    if not number or not number.startswith('+'):
-        raise ConfigError(f"Invalid or missing TWILIO_WHATSAPP_NUMBER: {number}. Must start with '+'.")
-    return number
+    """Validates a Twilio WhatsApp number format (basic check). Expects 'whatsapp:+...' format."""
+    if not number:
+        raise ConfigError(f"TWILIO_WHATSAPP_NUMBER is missing or empty.")
+
+    # Check if it starts with the expected 'whatsapp:' prefix
+    if number.startswith('whatsapp:'):
+        # Extract the actual phone number part (after 'whatsapp:')
+        phone_part = number[len('whatsapp:'):] # e.g., '+14155238886'
+        if not phone_part.startswith('+'):
+            raise ConfigError(f"Invalid TWILIO_WHATSAPP_NUMBER: {number}. The number part after 'whatsapp:' must start with '+'.")
+    else:
+        # If it doesn't start with 'whatsapp:', it might be a raw number (less common for WhatsApp)
+        # If you intend to support raw numbers, check for '+' here.
+        # If you only intend for WhatsApp numbers (which is standard), this branch should also fail.
+        raise ConfigError(f"Invalid TWILIO_WHATSAPP_NUMBER: {number}. Must start with 'whatsapp:'.")
+        # Alternatively, if raw numbers are allowed (not recommended for WhatsApp Business API):
+        # if not number.startswith('+'):
+        #     raise ConfigError(f"Invalid TWILIO_WHATSAPP_NUMBER: {number}. Must start with '+' or 'whatsapp:+'.")
+
+    # If we reach here, the format is valid (either raw +... or whatsapp:+...)
+    # Return the *original* number string as it was provided (e.g., 'whatsapp:+14155238886')
+    # This is what your Twilio client will expect.
+    return number # Return the original number string (with 'whatsapp:' prefix if it had it)
 
 def _get_supabase_url() -> str:
     """Retrieves and validates SUPABASE_URL."""
