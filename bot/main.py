@@ -265,7 +265,8 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
             performance_tracker.log_rate_limit_event(sender_number)
             return PlainTextResponse("OK")
 
-        # --- RAG: Retrieve Context (with error handling) ---
+        # --- RAG: Retrieve Context (with error handling and timing) ---
+        rag_start_time = time.perf_counter() # <--- ADD TIMING LOGIC
         try:
             context_list = await retriever.retrieve_async(message_body) # Gets list of dicts or other format from retriever
             # Safe extraction of context with proper error handling
@@ -291,6 +292,8 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
             context_str = "No relevant information found in the knowledge base."
             if SENTRY_DSN:
                 sentry_sdk.capture_exception(e)
+        rag_duration = time.perf_counter() - rag_start_time # <--- CALCULATE DURATION
+        logger.debug(f"({session_id}) RAG retrieval took {rag_duration:.2f}s") # <--- LOG DURATION
 
         # --- Intent & Sentiment Classification (Placeholder - could be done by LLM or separate model) ---
         # For now, assume a simple classification based on keywords or use the LLM prompt
@@ -341,29 +344,48 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
             language_code="en" # Adjust based on detection
         )
 
-        # --- Prompt Engineering ---
-        # This call is where the KeyError: 'Sentiment' likely occurs if PromptEngine is not handling the ConversationContext correctly.
-        # Ensure prompt_engine.generate_system_prompt expects a ConversationContext object or extracts fields correctly.
-        # --- Prompt Engineering ---
+        # --- Prompt Engineering (with timing) ---
+        prompt_start_time = time.perf_counter() # <--- ADD TIMING LOGIC
         system_prompt = prompt_engine.generate_system_prompt(conversation_context_obj)
         user_prompt = prompt_engine.build_user_message_prompt(message_body, language_code="en") # <-- Use the correct method name
+        prompt_duration = time.perf_counter() - prompt_start_time # <--- CALCULATE DURATION
+        logger.debug(f"({session_id}) Prompt engineering took {prompt_duration:.2f}s") # <--- LOG DURATION
 
-        # --- AI Generation ---
+        # --- AI Generation (with timing) ---
+        ai_start_time = time.perf_counter() # <--- ADD TIMING LOGIC
         raw_response = await call_groq_async(system_prompt, user_prompt)
+        ai_duration = time.perf_counter() - ai_start_time # <--- CALCULATE DURATION
+        logger.debug(f"({session_id}) AI generation (Groq) took {ai_duration:.2f}s") # <--- LOG DURATION
 
-        # --- Response Enhancement ---
+        # --- Response Enhancement (with timing) ---
+        enhancer_start_time = time.perf_counter() # <--- ADD TIMING LOGIC
         context_for_enhancer = {
             "language_code": "en",
             "intent": detected_intent.value # Access .value *after* confirming it's an Enum instance
         }
         enhanced_response = response_enhancer.enhance(raw_response, context_for_enhancer)
+        enhancer_duration = time.perf_counter() - enhancer_start_time # <--- CALCULATE DURATION
+        logger.debug(f"({session_id}) Response enhancement took {enhancer_duration:.2f}s") # <--- LOG DURATION
 
-        # --- Send Response via Twilio ---
+        # --- Truncate Response if Necessary (NEW SECTION) ---
+        MAX_MESSAGE_LENGTH = 1600
+        TRUNCATION_SUFFIX = "..." # Indicator that the message was shortened
+
+        # Check length and truncate if necessary
+        if len(enhanced_response) > MAX_MESSAGE_LENGTH:
+            # Truncate and add suffix
+            truncated_response = enhanced_response[:MAX_MESSAGE_LENGTH - len(TRUNCATION_SUFFIX)] + TRUNCATION_SUFFIX
+            logger.warning(f"({session_id}) Response was too long ({len(enhanced_response)} chars) and has been truncated to {MAX_MESSAGE_LENGTH} chars.")
+            message_to_send = truncated_response
+        else:
+            message_to_send = enhanced_response
+
+        # --- Send Response via Twilio (using the potentially truncated message) ---
         # Use the GLOBAL twilio_client variable
-        twilio_client.messages.create( # Use the global variable name 'twilio_client'
-            body=enhanced_response,
-            from_=TWILIO_WHATSAPP_NUMBER, # Use config variable
-            to=sender_number # Use the variable assigned from form_data
+        twilio_client.messages.create(
+            body=message_to_send, # Send the potentially truncated message
+            from_=TWILIO_WHATSAPP_NUMBER,
+            to=sender_number
         )
         logger.info(f"({session_id}) Sent response to {sender_number}")
 
@@ -371,13 +393,15 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         # Pass the *Enum instances* (detected_intent, detected_sentiment, detected_urgency), not the classes
         # Use the correctly named function
         background_tasks.add_task(
-            log_interaction_to_supabase_async, # Call the correctly named function
-            sender_number, message_body, enhanced_response, context_str, # Use the variables assigned from form_data
-            detected_intent, detected_sentiment, detected_urgency, session_id # Pass Enum *instances* here
+            log_interaction_to_supabase_async,
+            sender_number, message_body, message_to_send, context_str, # Use the potentially truncated message for logging too, if desired
+            detected_intent, detected_sentiment, detected_urgency, session_id
         )
 
-        # --- Log Performance Metric ---
+        # --- Log Performance Metric (with timing breakdown) ---
         duration = time.perf_counter() - start_time
+        total_processing_time = rag_duration + prompt_duration + ai_duration + enhancer_duration
+        logger.debug(f"({session_id}) Estimated internal processing time: {total_processing_time:.2f}s")
         performance_tracker.log_response_time(duration, detected_intent.value) # Use the *value* for tracking
 
         return PlainTextResponse("OK")
@@ -401,7 +425,7 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         if message_body: # Use the variable assigned from form_data
              logger.error(f"({session_id}) Error occurred while processing message: '{message_body[:100]}...'") # Log truncated message for context
         raise HTTPException(status_code=500, detail=error_detail)
-
+    
 # --- Health Check Endpoint ---
 @app.get("/health")
 async def health_check():

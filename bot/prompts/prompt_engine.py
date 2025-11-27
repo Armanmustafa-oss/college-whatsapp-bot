@@ -52,7 +52,7 @@ class ConversationContext:
     session_id: str
     conversation_history: List[Dict[str, str]]
     retrieved_context: str
-    user_profile: Dict[str, Any] # e.g., {'role': 'student', 'year': 'freshman', 'major': 'CS'}
+    user_profile: Dict[str, Any]
     intent: Intent
     sentiment: Sentiment
     urgency: Urgency
@@ -103,7 +103,6 @@ class PromptEngine:
                 "style": "Motivational, forward-looking. Connect academic path to career goals.",
                 "tone": "Encouraging, strategic"
             },
-            # Default persona for other intents
             "default": {
                 "name": "General Assistant",
                 "style": "Helpful, friendly, professional. Prioritize accuracy and FERPA compliance.",
@@ -147,9 +146,6 @@ class PromptEngine:
                 - Always conclude with a positive, helpful note or a prompt for further interaction.
                 - If escalating, provide the contact: {human_contact_info}
             """,
-            # Add more languages as needed (e.g., tr, ar)
-            # "tr": "...",
-            # "ar": "...",
         }
 
         self.human_contact_info = {
@@ -163,7 +159,7 @@ class PromptEngine:
         recent = history[-max_exchanges:]
         summary_parts = []
         for exchange in recent:
-            summary_parts.append(f"User: {exchange.get('message', '')[:100]}...") # Truncate for brevity
+            summary_parts.append(f"User: {exchange.get('message', '')[:100]}...")
             summary_parts.append(f"Bot: {exchange.get('response', '')[:100]}...")
         return "\n".join(summary_parts)
 
@@ -171,83 +167,136 @@ class PromptEngine:
         """Selects the appropriate persona based on the detected intent."""
         return self.personas.get(intent, self.personas["default"])
 
-    # Continue defining PromptEngine methods below (removed accidental nested class declaration)
-
     def generate_system_prompt(self, context: ConversationContext) -> str:
         """
-        Generates the system prompt incorporating conversation context and RAG context.
+        Generates an enhanced, human-like system prompt that creates natural conversations.
         """
-        # Example template string - this is where the KeyError likely originates
-        # Ensure the placeholders match the *attribute names* on the ConversationContext object
-        # or the *keys* you put into the dictionary used for .format().
-        # If ConversationContext has attributes 'sentiment', 'intent', 'urgency',
-        # and they are Enum instances, you need to access .value.
-        # The template might look like:
-        # template = f"""
-        # You are an assistant for {{college_name}}.
-        # Current intent: {{intent}}. # This expects 'intent' key in format dict
-        # Detected sentiment: {{sentiment}}. # This expects 'sentiment' key in format dict
-        # Perceived urgency: {{urgency}}. # This expects 'urgency' key in format dict
-        # RAG Context: {{context_used}}
-        # ...
-        # """
+        
+        # Enhanced persona-aware greeting style
+        persona = self._select_persona(context.intent)
+        
+        # Conversation history context
+        history_summary = self._summarize_conversation_history(context.conversation_history)
+        
+        # Build the enhanced human-like prompt
+        template = """You are a helpful member of the {college_name} team assisting students, staff, and visitors. Your goal is to provide accurate, friendly, and conversational responses that feel natural and human.
 
-        # --- CORRECTED APPROACH: Extract values correctly from ConversationContext object ---
-        # The ConversationContext object has attributes like .sentiment, .intent, .urgency
-        # which hold Enum *instances*. Access their .value.
-        # Build the prompt string using the values from the context object directly.
-        # This avoids relying on a dictionary key lookup that might be missing.
+🎯 **CORE COMMUNICATION STYLE:**
 
-        # Example 1: Direct string formatting (if template is simple enough)
-        # system_prompt = f"""
-        # You are an assistant for {self.college_name}.
-        # Current intent: {context.intent.value}.
-        # Detected sentiment: {context.sentiment.value}.
-        # Perceived urgency: {context.urgency.value}.
-        # RAG Context: {context.retrieved_context}
-        # ...
-        # """
+**Be Conversational & Natural:**
+- Write like you're having a real conversation, not reading from a manual
+- Use natural transitions: "Great question!", "I can help with that", "Let me explain..."
+- Vary your sentence structure to sound human
+- Show personality while remaining professional
+- Match the user's energy and tone appropriately
 
-        # Example 2: Using a template string with .format() (more common)
-        # Define the template string *inside* the method or as a class attribute.
-        # Ensure the keys in the .format() call match the attribute values accessed from the context object.
-        template = """You are an official AI assistant for {college_name}, providing accurate and helpful information to students, staff, and visitors. Your responses must be based solely on the provided context. If the context doesn't contain the answer, state clearly that the information is not available in the provided documents and suggest contacting the relevant college department directly. Be polite, concise, and professional.
+**Be Precise & Concise:**
+- Get straight to the point - respect their time
+- Answer exactly what they asked first, then offer additional help if relevant
+- Use bullet points ONLY when listing 3+ distinct items
+- Keep responses focused - typically 2-4 sentences unless more detail is clearly needed
+- Avoid repeating information or over-explaining
 
-        Current intent: {intent}.
-        Detected sentiment: {sentiment}.
-        Perceived urgency: {urgency}.
-        RAG Context: {context_used}
-        College Name: {college_name}
-        User Profile: {user_profile}
-        Language: {language_code}
-        Timestamp: {timestamp}
-        """ # Define the template string
+**Handle Uncertainty Gracefully:**
+When information isn't in your knowledge base, respond naturally:
+- "We haven't made any updates on that yet, but I'll make sure to share when we do"
+- "That's not something we've finalized at this time"
+- "Great question - we're still working on those details"
+- "I don't have the latest on that right now, but you could check with [relevant department] for the most current information"
+- Never say "I don't have information" - always frame it constructively
 
-        # Build the dictionary for .format() using the *values* from the context object's Enum attributes
-        # The keys in this dictionary must match the placeholders in the 'template' string.
+**Understand Context & Intent:**
+- Recognize variations in how questions are phrased
+- Understand synonyms and related terms (e.g., "cost" = "fees" = "tuition")
+- Pick up on implied questions
+- Connect related information naturally
+
+**Structure Your Responses:**
+- Lead with the direct answer
+- Add context or details if helpful
+- End with a friendly offer to help further (when appropriate)
+- Use formatting sparingly:
+  • Bullet points for 3+ distinct items
+  • Bold for critical information only
+  • Keep it clean and scannable
+
+---
+
+📋 **CURRENT CONTEXT:**
+Intent: {intent}
+Sentiment: {sentiment}
+Urgency: {urgency}
+User Profile: {user_profile}
+Conversation History: {conversation_history}
+
+---
+
+📚 **KNOWLEDGE BASE INFORMATION:**
+{context_used}
+
+---
+
+⚠️ **CRITICAL RULES:**
+1. Base ALL answers on the Knowledge Base context provided above
+2. Never invent or assume information not in the context
+3. Keep responses concise unless detail is specifically requested
+4. Adapt tone to match user's emotion (friendly for positive, empathetic for negative)
+5. For urgent/critical matters ({urgency}), prioritize clarity and next steps
+6. Never mention you're an AI, bot, or have limitations - just be helpful
+7. If the knowledge base doesn't cover their question, gracefully explain we're still finalizing those details
+
+---
+
+🎭 **YOUR PERSONA TODAY:** {persona_name}
+Style: {persona_style}
+Tone: {persona_tone}
+
+---
+
+💬 **CONVERSATION EXAMPLES:**
+
+User: "How much does it cost to go here?"
+Good: "Tuition is $20,000 per year for full-time students. That covers all your classes and access to campus facilities. Would you like to know about financial aid options too?"
+Bad: "Based on the provided context, the tuition cost structure at our institution is $20,000 annually for students enrolled in full-time status..."
+
+User: "When's the last day I can drop a class?"
+Good: "You can drop classes without penalty until the end of week 2 of the semester. After that, you'll need to speak with your advisor. Need help finding your advisor's contact info?"
+Bad: "According to university policy section 4.2.1, the drop deadline is defined as..."
+
+User: "Do you guys have dorms?"
+Good: "Yes! We have four residence halls on campus with different styles - traditional dorms, suite-style, and apartments. Most freshmen start in traditional dorms. Want to know about the housing application?"
+Bad: "Affirmative. The institution provides on-campus residential facilities..."
+
+User: "What's the deal with parking?"
+Good: "Students need a parking permit - they're $150 per semester. You can buy one through the student portal. Fair warning though, parking fills up quick, so grab yours early!"
+Bad: "I don't have information about parking in my knowledge base."
+
+---
+
+Remember: You're here to help, not to impress with formal language. Be friendly, be clear, be human. 🚀
+"""
+
+        # Build the format dictionary
         format_dict = {
             "college_name": self.college_name,
-            "intent": context.intent.value, # Access .value on the Enum instance stored in context.intent
-            "sentiment": context.sentiment.value, # Access .value on the Enum instance stored in context.sentiment
-            "urgency": context.urgency.value, # Access .value on the Enum instance stored in context.urgency
-            "context_used": context.retrieved_context,
-            "user_profile": context.user_profile,
-            "language_code": context.language_code,
-            "timestamp": context.timestamp.isoformat() # Format timestamp appropriately
+            "intent": context.intent.value,
+            "sentiment": context.sentiment.value,
+            "urgency": context.urgency.value,
+            "context_used": context.retrieved_context if context.retrieved_context else "No specific information available for this query.",
+            "user_profile": json.dumps(context.user_profile),
+            "conversation_history": history_summary,
+            "persona_name": persona["name"],
+            "persona_style": persona["style"],
+            "persona_tone": persona["tone"]
         }
 
-        # Use the dictionary to fill the template string
-        system_prompt = template.format(**format_dict) # ** unpacks the dictionary as keyword arguments
-
-        return system_prompt # Return the filled prompt string
-
+        system_prompt = template.format(**format_dict)
+        return system_prompt
 
     def generate_intent_classification_prompt(self, message: str, language: str = "en") -> str:
         """
         Generates a prompt specifically for classifying user intent.
-        This can be sent to a specialized model or used as part of the main prompt.
         """
-        # This is a simplified version. In practice, you might use a dedicated classifier model.
         intent_descriptions = {
             "en": {
                 Intent.ADMISSIONS: "Questions about applying to college, entrance exams, application status.",
@@ -281,9 +330,7 @@ class PromptEngine:
     def generate_sentiment_analysis_prompt(self, message: str, language: str = "en") -> str:
         """
         Generates a prompt for sentiment analysis.
-        This can be sent to a specialized model or used as part of the main prompt.
         """
-        # This is a simplified version. A dedicated model or library is recommended.
         prompt_templates = {
             "en": f"""
             Analyze the sentiment of this message. Consider the user's emotional state (frustration, happiness, anxiety, urgency).
@@ -298,11 +345,7 @@ class PromptEngine:
     def generate_escalation_prompt(self, context: ConversationContext) -> str:
         """
         Generates a prompt to determine if escalation to a human is needed.
-        This logic could also be implemented directly in the main application logic using context fields.
         """
-        # A more sophisticated system might use ML, but here's a rule-based prompt for an LLM classifier.
-        # Often, the decision is made programmatically based on context.sentiment, context.urgency, etc.
-        # This prompt is illustrative if a complex LLM analysis was desired.
         history_summary = self._summarize_conversation_history(context.conversation_history)
         prompt = f"""
         Based on the conversation history and current state, should this conversation be escalated to a human agent?
@@ -333,48 +376,26 @@ class PromptEngine:
         """
         fallbacks = {
             "en": {
-                "general": "I'm currently processing your request. Could you please rephrase your question or try again?",
-                "no_context": f"I don't have specific information on that topic in my knowledge base. Please check the {self.college_name} website or contact our support team at support@your_college_domain.edu for detailed assistance.",
-                "rate_limit": "You've reached the message limit for this session. Please wait a moment before sending another message.",
-                "error": "An unexpected error occurred on my end. My team has been notified. Please try again shortly. If the problem persists, contact support.",
-                "escalation_triggered": f"Your concern seems important. I'm connecting you to a human advisor. In the meantime, you can reach Student Support at support@your_college_domain.edu or call +1-xxx-xxx-xxxx."
+                "general": "Let me try to help you with that. Could you rephrase your question or provide a bit more detail?",
+                "no_context": f"That's a great question! We're still finalizing some details on that topic. For the most up-to-date information, I'd recommend reaching out to our team directly at support@{self.college_name.lower().replace(' ', '')}.edu - they'll have the latest.",
+                "rate_limit": "Thanks for your patience! I need just a moment to process everything. Try sending your message again in a few seconds.",
+                "error": "Oops, something hiccupped on my end. Give me just a moment - try again in a few seconds and we should be good to go!",
+                "escalation_triggered": f"I want to make sure you get the best help possible. Let me connect you with someone from our team who can assist you further. You can also reach Student Support directly at support@{self.college_name.lower().replace(' ', '')}.edu or give us a call at +1-xxx-xxx-xxxx."
             }
         }
-        # Potentially adapt fallback based on context.sentiment or context.intent
+        
         if error_type == "escalation_triggered" and context:
              logger.info(f"Escalation triggered for session {context.session_id} (Intent: {context.intent.value}, Sentiment: {context.sentiment.value}). Providing escalation fallback.")
+        
         return fallbacks.get(language, fallbacks["en"]).get(error_type, fallbacks["en"]["general"])
 
     def build_user_message_prompt(self, user_input: str, language_code: str = "en") -> str:
         """
         Builds the user message portion of the prompt, potentially incorporating language hints.
         """
-        # Example: Simply return the user input, or add language hinting if needed by the LLM
-        # This might be where you add language-specific instructions or formatting hints for the user message
-        # before it goes to the LLM.
-        # For now, a simple pass-through with potential language hinting.
         if language_code == "tr":
             return f"(Lütfen Türkçe yanıt verin) {user_input}"
         elif language_code == "ar":
             return f"(يرجى الرد باللغة العربية) {user_input}"
-        else: # Default to English or if language is unknown
+        else:
             return user_input
-        
-        
-# Example usage (if run as main):
-# if __name__ == "__main__":
-#     pe = PromptEngine(college_name="InnovateU", knowledge_base_metadata={"last_updated": "2024-01-01"})
-#     context_obj = ConversationContext(
-#         user_id="user123",
-#         session_id="sess456",
-#         conversation_history=[{"message": "Hi", "response": "Hello!"}],
-#         retrieved_context="Tuition fees are $20,000 per year.",
-#         user_profile={"role": "prospect", "year": "freshman"},
-#         intent=Intent.FEES,
-#         sentiment=Sentiment.NEUTRAL,
-#         urgency=Urgency.LOW,
-#         timestamp=datetime.now(timezone.utc),
-#         language_code="en"
-#     )
-#     sys_prompt = pe.generate_system_prompt(context_obj)
-#     print("Generated System Prompt:\n", sys_prompt)

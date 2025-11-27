@@ -13,6 +13,8 @@ import logging
 import argparse
 from pathlib import Path
 import hashlib
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # Go up two levels from scripts/
+sys.path.insert(0, project_root)
 from bot.rag.vector_store import VectorStore # Import the VectorStore class
 from supabase import create_client, Client as SupabaseClient
 import asyncio # If VectorStore methods are async, use asyncio.run
