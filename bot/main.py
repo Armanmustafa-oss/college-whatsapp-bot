@@ -213,7 +213,7 @@ async def log_interaction_to_supabase_async( # Renamed function to match call
 
     # Build the log entry dictionary using the checked Enum instances
     log_entry = {
-        "user_phone": user_phone,
+        "user_id": user_phone,
         "user_message": user_message,
         "bot_response": bot_response,
         "timestamp": datetime.now(timezone.utc).isoformat(), # ISO format for Supabase timestamp
