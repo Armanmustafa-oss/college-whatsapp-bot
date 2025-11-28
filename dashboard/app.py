@@ -81,7 +81,7 @@ async def fetch_conversation_metrics_async(start_date: datetime, end_date: datet
     """Fetches core conversation metrics from Supabase."""
     # Example query - adjust table and column names based on your schema
     query = supabase.table("conversations") \
-        .select("id, timestamp, sentiment, response_time, intent, urgency") \
+        .select("id, timestamp, sentiment, response_time_seconds, intent, urgency") \
         .gte("timestamp", start_date.isoformat()) \
         .lte("timestamp", end_date.isoformat())
 
@@ -103,7 +103,7 @@ async def fetch_conversation_metrics_async(start_date: datetime, end_date: datet
         df['date'] = df['timestamp'].dt.date
 
         total_interactions = len(df)
-        avg_response_time = df['response_time'].mean() if 'response_time' in df.columns else 0.0
+        avg_response_time = df['response_time_seconds'].mean() if 'response_time_seconds' in df.columns else 0.0
         positive_count = df[df['sentiment'] == 'positive'].shape[0]
         negative_count = df[df['sentiment'] == 'negative'].shape[0]
         very_negative_count = df[df['sentiment'] == 'very_negative'].shape[0]
