@@ -7,7 +7,7 @@ builder = "NIXPACKS"
 
 [deploy]
 # Command to start the main bot application process
-startCommand = "uvicorn bot.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "sh -c 'eval $START_CMD'"
 # Path for the health check endpoint
 healthcheckPath = "/health"
 # Timeout for the health check in seconds
