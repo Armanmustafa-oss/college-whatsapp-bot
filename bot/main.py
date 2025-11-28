@@ -84,6 +84,12 @@ async def lifespan(app: FastAPI):
     try:
         data_dir = "./data"
         if os.path.exists(data_dir):
+            # Clear existing collection to force re-ingestion with new chunking
+            try:
+                retriever.vector_store.collection.delete(where={})
+                logger.info("🗑️ Cleared existing embeddings for re-ingestion")
+            except Exception as e:
+                logger.warning(f"Could not clear collection: {e}")
             retriever.vector_store.ingest_documents(data_dir)
             logger.info(f"✅ Documents ingested from {data_dir}")
         else:
@@ -282,7 +288,7 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         # --- RAG: Retrieve Context (with error handling and timing) ---
         rag_start_time = time.perf_counter() # <--- ADD TIMING LOGIC
         try:
-            context_list = await retriever.retrieve_async(message_body) # Gets list of dicts or other format from retriever
+            context_list = await retriever.retrieve_async(message_body, top_k=10) # Gets list of dicts or other format from retriever
             # Safe extraction of context with proper error handling
             if isinstance(context_list, list) and len(context_list) > 0: # Check if it's a list AND not empty
                 # Handle both dict and string items in the list
