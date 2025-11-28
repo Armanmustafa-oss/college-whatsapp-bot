@@ -328,7 +328,7 @@ async def dashboard_home(request: Request):
         </div>
         <script>
             // Optional: Auto-refresh the page every 30 seconds
-            // setTimeout(function(){ location.reload(); }, 30000);
+            // setTimeout(function(){{ location.reload(); }}, 30000);
         </script>
     </body>
     </html>
