@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Failed to ingest documents: {e}")
         if SENTRY_DSN:
             sentry_sdk.capture_exception(e)
-            
+
     # Performance Tracker
     performance_tracker = PerformanceTracker(supabase_client=supabase)
     logger.info("✅ PerformanceTracker initialized.")
