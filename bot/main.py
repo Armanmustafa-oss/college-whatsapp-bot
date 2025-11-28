@@ -5,6 +5,7 @@ FastAPI-based webhook handler orchestrating the entire bot interaction flow.
 Integrates RAG, Prompt Engineering, AI Generation, Response Enhancement, and Monitoring.
 """
 
+import os
 import logging
 import time
 import asyncio
@@ -79,6 +80,19 @@ async def lifespan(app: FastAPI):
     retriever = Retriever()
     logger.info("✅ RAG Retriever initialized.")
 
+    # Ingest documents into VectorStore (ADD THIS SECTION)
+    try:
+        data_dir = "./data"
+        if os.path.exists(data_dir):
+            retriever.vector_store.ingest_documents(data_dir)
+            logger.info(f"✅ Documents ingested from {data_dir}")
+        else:
+            logger.error(f"❌ Data directory not found: {data_dir}")
+    except Exception as e:
+        logger.error(f"❌ Failed to ingest documents: {e}")
+        if SENTRY_DSN:
+            sentry_sdk.capture_exception(e)
+            
     # Performance Tracker
     performance_tracker = PerformanceTracker(supabase_client=supabase)
     logger.info("✅ PerformanceTracker initialized.")
