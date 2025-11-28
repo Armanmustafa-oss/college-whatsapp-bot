@@ -77,7 +77,7 @@ class VectorStore:
             logger.error(f"Error reading TXT file {file_path}: {e}")
         return text
 
-    def _chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
+    def _chunk_text(self, text: str, chunk_size: int = 1000, overlap: int = 150) -> List[str]:
         """Splits text into overlapping chunks for better retrieval."""
         chunks = []
         start = 0
