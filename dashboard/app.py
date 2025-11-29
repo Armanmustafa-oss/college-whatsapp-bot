@@ -416,7 +416,7 @@ def create_sentiment_trend_chart(df: pd.DataFrame) -> str:
 def create_response_time_trend_chart(df: pd.DataFrame) -> str:
     """Creates a multi-line chart for response time trends (avg, p95, p99)."""
     if df.empty or 'timestamp' not in df.columns or 'response_time_seconds' not in df.columns:
-        fig = px.line(title="Response Time Trends (No Data)")
+        fig = px.line(title="Response Time Trends (Avg, P95, P99) (No Data)")
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
@@ -427,19 +427,73 @@ def create_response_time_trend_chart(df: pd.DataFrame) -> str:
         )
         return fig.to_html(include_plotlyjs=False, config={'displayModeBar': False})
 
+    # Ensure 'timestamp' is the index and is datetime type
+    df_indexed = df.set_index('timestamp')
     # Resample to daily average, p95, p99
-    df_resampled = df.set_index('timestamp').resample('D')['response_time_seconds'].agg(['mean', lambda x: x.quantile(0.95), lambda x: x.quantile(0.99)]).rename(columns={'mean': 'avg', '<lambda_0>': 'p95', '<lambda_1>': 'p99'}).reset_index()
+    # Use specific quantile functions to avoid lambda issues if possible, or handle lambda results carefully
+    df_resampled = df_indexed.resample('D')['response_time_seconds'].agg(
+        avg='mean',
+        p95=lambda x: x.quantile(0.95),
+        p99=lambda x: x.quantile(0.99)
+    ).reset_index() # Reset index to make 'timestamp' a column again
 
-    fig = px.line(df_resampled, x='timestamp', y=['avg', 'p95', 'p99'], title="Response Time Trends (Avg, P95, P99)")
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color="white"),
-        title_font_size=16,
-        hovermode='x unified'
-    )
-    return fig.to_html(include_plotlyjs=False, config={'displayModeBar': False})
+    # Debug: Print column info (optional, remove after confirming fix)
+    # print(f"df_resampled dtypes: {df_resampled.dtypes}")
+    # print(f"df_resampled head: {df_resampled.head()}")
+
+    # Explicitly convert the metric columns to float to ensure consistency
+    # This handles potential object types resulting from lambda or quantile operations on empty groups
+    numeric_cols = ['avg', 'p95', 'p99']
+    for col in numeric_cols:
+        if col in df_resampled.columns:
+             # Convert to numeric, coercing errors (like NaN strings) to NaN
+             df_resampled[col] = pd.to_numeric(df_resampled[col], errors='coerce')
+             # Fill NaN values with a suitable value (e.g., 0) or interpolate
+             # Filling with 0 might be misleading, interpolation is often better if appropriate
+             # df_resampled[col] = df_resampled[col].fillna(0)
+             # Or, drop rows where all y-values are NaN (if a day has no data)
+             # df_resampled = df_resampled.dropna(subset=numeric_cols, how='all')
+             # Or, use ffill/bfill/interpolate, e.g.:
+             df_resampled[col] = df_resampled[col].interpolate(method='linear').fillna(method='bfill').fillna(method='ffill')
+
+    # Check again if data is sufficient after processing
+    if df_resampled.empty or df_resampled[numeric_cols].isna().all().all():
+        fig = px.line(title="Response Time Trends (Avg, P95, P99) (No Valid Data After Processing)")
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color="white"),
+            title_font_size=16,
+            hovermode='x unified'
+        )
+        return fig.to_html(include_plotlyjs=False, config={'displayModeBar': False})
+
+    # Now, attempt to create the plot with the processed DataFrame
+    try:
+        fig = px.line(df_resampled, x='timestamp', y=numeric_cols, title="Response Time Trends (Avg, P95, P99)")
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color="white"),
+            title_font_size=16,
+            hovermode='x unified'
+        )
+        return fig.to_html(include_plotlyjs=False, config={'displayModeBar': False})
+    except ValueError as e:
+        logger.error(f"Error creating response time trend chart after processing: {e}")
+        # Fallback chart if px.line still fails after processing
+        fig = px.line(title=f"Response Time Trends (Error: {e})")
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color="white"),
+            title_font_size=16,
+            hovermode='x unified'
+        )
+        return fig.to_html(include_plotlyjs=False, config={'displayModeBar': False})
 
 def create_error_log_table(recent_errors: List[Dict]) -> str:
     """Creates an HTML table for the error log."""
