@@ -288,8 +288,20 @@ def create_roi_over_time_chart(start_date: datetime, end_date: datetime) -> str:
     roi_values = [i * 2 + np.random.normal(0, 1) for i in range(len(dates))] # Add some noise
     df = pd.DataFrame({'date': dates, 'roi_percentage': roi_values})
 
-    fig = px.area(df, x='date', y='roi_percentage', title="ROI Over Time (Simulated)", fill='tonexty')
+    # Use go.Figure with Scatter trace and fill='tonexty' for the fill effect
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df['date'],
+        y=df['roi_percentage'],
+        mode='lines', # Use 'lines' or 'lines+markers'
+        fill='tonexty', # Fill down to the next trace (or to zero if it's the last trace)
+        fillcolor='rgba(187, 134, 252, 0.2)', # Semi-transparent color (optional, adjust as needed)
+        line=dict(color='rgba(187, 134, 252, 1)'), # Line color (adjust as needed, e.g., using --accent-color)
+        name='ROI %' # Legend name
+    ))
+
     fig.update_layout(
+        title="ROI Over Time (Simulated)",
         template="plotly_dark",
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
