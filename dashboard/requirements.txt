@@ -1,9 +1,48 @@
-# Dashboard-specific dependencies (can be same as main requirements for simplicity)
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-plotly==5.18.0
-pandas==2.2.0
-supabase==2.3.4
-python-dotenv==1.0.1
-pydantic==2.5.3
-jinja2==3.1.3
+# Core Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Data Processing & Visualization
+pandas>=2.2.0
+plotly>=5.18.0
+# No need to pin plotly exactly unless a specific version is critical
+
+# Database Client
+supabase>=2.3.4
+
+# Configuration
+python-dotenv>=1.0.1
+
+# Data Validation (Keep your existing Pydantic v2)
+pydantic>=2.5.3
+# You might consider updating to the latest minor patch if available: pydantic>=2.5.3,<3.0.0
+
+# Template Engine (Not strictly needed for the new dashboard, but keep if part of your overall project or if other parts use it)
+jinja2>=3.1.3
+
+# RAG & Embeddings (These are likely needed by the main bot application, ensure compatibility)
+# ChromaDB (specify a version known to work or allow recent ones, consider the telemetry issue)
+chromadb>=0.5.0  # Or a specific recent stable version. Check for versions that fix the posthog error if it persists.
+# If the posthog error is very disruptive and a newer ChromaDB doesn't fix it,
+# you might need to pin an older version known to work, but this is less ideal.
+
+# Sentence Transformers (for embeddings, likely needed by the main bot)
+sentence-transformers>=2.6.1  # Or a recent stable version compatible with your ChromaDB version
+
+# HTTPX (used by the main bot for Groq API calls, ensure compatibility)
+httpx>=0.27.0  # Or a recent stable version
+
+# Twilio Client (for WhatsApp integration)
+twilio>=8.10.0 # Or a recent stable version
+
+# Monitoring (if using Sentry)
+sentry-sdk[fastapi]>=1.40.0 # Or a recent stable version compatible with FastAPI 0.109+
+
+# Optional: For async handling if needed elsewhere in the project
+asyncio # This is part of the Python standard library, so no need to list it explicitly unless pinning a specific stdlib version (which is unusual).
+
+# Logging/Utilities (if using structlog or similar)
+# Add if you use other specific logging utilities
+
+# Testing (if pytest is used)
+# pytest>=8.0.0 # Add if testing is part of this service's requirements, though often in a separate test requirements file
