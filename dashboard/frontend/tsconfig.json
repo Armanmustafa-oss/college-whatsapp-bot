@@ -5,13 +5,19 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "jsxImportSource": "react",
+    "jsxImportSource": "react", // This might be redundant if using standard React JSX transform
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    // --- ADD THESE LINES ---
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+    // --- END ADD ---
   },
   "include": ["src/**/*", "vite.config.ts", "env.d.ts", "**/*.ts", "**/*.tsx"]
 }
