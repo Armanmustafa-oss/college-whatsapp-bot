@@ -367,7 +367,7 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
         # --- Prompt Engineering (with timing) ---
         prompt_start_time = time.perf_counter() # <--- ADD TIMING LOGIC
         system_prompt = prompt_engine.generate_system_prompt(conversation_context_obj)
-        user_prompt = prompt_engine.build_user_message_prompt(message_body, language_code="en") # <-- Use the correct method name
+        user_prompt = prompt_engine.build_user_message_prompt(message_body, conversation_context_obj) # <-- Use the correct method name
         prompt_duration = time.perf_counter() - prompt_start_time # <--- CALCULATE DURATION
         logger.debug(f"({session_id}) Prompt engineering took {prompt_duration:.2f}s") # <--- LOG DURATION
 
