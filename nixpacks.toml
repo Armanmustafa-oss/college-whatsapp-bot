@@ -1,0 +1,28 @@
+# nixpacks.toml
+# Explicitly define the build process for Nixpacks to ensure Python is available
+
+# Define the source of truth for dependencies
+[phases.setup]
+# Install Python first, based on the PYTHON_VERSION environment variable
+nixPkgs = ["python3", "pip", "nodejs", "npm"] # Include Python and Node if needed elsewhere
+# Or, if you want to be more specific about the Python version managed by environment variables:
+# nixPkgs = ["(python3.override {inherit (pkgs) python311;})", "pip"]
+
+# Define how to install dependencies
+[phases.install]
+cmds = [
+    "pip install --no-cache-dir -r requirements.txt", # Install Python deps
+    "mkdir -p dashboard/frontend/node_modules",       # Create node_modules dir if needed to satisfy Nixpacks detection logic, or handle frontend deps separately if required
+    "cd dashboard/frontend && npm ci --only=production" # Install frontend deps IF needed at build time and IF frontend is part of the main service
+]
+
+# Define the start command (this overrides the one in railway.toml for the runtime)
+[start]
+# The command here should ultimately be what's in your $START_CMD environment variable on Railway
+# For example, if START_CMD is: python scripts/reindex_documents.py && python -m uvicorn bot.main:app --host 0.0.0.0 --port $PORT
+# Then cmd should be:
+cmd = "sh -c 'eval $START_CMD'"
+# Ensure your Railway START_CMD variable is set correctly (e.g., to the bot start command or dashboard start command depending on the service).
+# Example for bot: python scripts/reindex_documents.py && python -m uvicorn bot.main:app --host 0.0.0.0 --port $PORT
+# Example for dashboard: python -m uvicorn dashboard.app:app --host 0.0.0.0 --port $PORT
+# Railway will set $PORT, ensure other necessary environment variables (like Supabase keys, Groq key) are also set in the Railway dashboard for this service.
