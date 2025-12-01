@@ -1,0 +1,26 @@
+# railway.toml (Example *IF* configuring dashboard service specifically here, less common)
+# Defines how the *dashboard* application is built and deployed on Railway
+
+[build]
+# Use Nixpacks builder for flexible builds
+builder = "NIXPACKS"
+
+[deploy]
+# Command to start the dashboard application process
+# This overrides any default start command detection.
+# It's crucial that the START_CMD environment variable in the Railway dashboard
+# for this specific service is set correctly (e.g., to the uvicorn command below).
+startCommand = "sh -c 'eval $START_CMD'"
+# Path for the health check endpoint (adjust if your dashboard has a specific health check)
+healthcheckPath = "/" # Or a specific health check if dashboard/app.py has one, otherwise use the root or main bot's if sharing
+# Timeout for the health check in seconds
+healthcheckTimeout = 100
+# Policy for restarting the service if it crashes
+restartPolicyType = "on_failure"
+# Maximum number of restart attempts
+restartPolicyMaxRetries = 10
+
+[env]
+# Specify the Python version to use (ensure it matches your requirements and local setup)
+PYTHON_VERSION = "3.11" # Or the version specified in your requirements.txt
+# Other environment variables like SUPABASE_URL, SUPABASE_KEY should be set in the Railway UI for this service

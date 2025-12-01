@@ -4,6 +4,8 @@ A production-ready analytics dashboard built with FastAPI and Plotly
 Integrates with Supabase PostgreSQL database
 Single-file application for seamless Railway deployment
 """
+import os
+from dotenv import load_dotenv
 
 import os
 import json
