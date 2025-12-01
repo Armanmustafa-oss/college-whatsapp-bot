@@ -1,0 +1,19 @@
+# FastAPI and ASGI server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Data visualization
+plotly==5.18.0
+
+# Database
+supabase==2.3.5
+# NOTE: postgrest-py==0.13.2 does not exist. Let 'supabase' pull its compatible version.
+# postgrest-py==0.13.2 # Remove this line as it causes installation errors
+
+# Utilities
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Optional but recommended
+python-multipart==0.0.6
