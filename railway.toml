@@ -1,11 +1,14 @@
-# railway.toml - Simplified, relying on nixpacks.toml for build/start
+# railway.toml - Simplified for original architecture
 # Defines how the application is built and deployed on Railway
 
 [build]
 # Use Nixpacks builder for flexible builds
 builder = "NIXPACKS"
 
-[deploy]
+#[deploy]
+# Remove the startCommand line
+# startCommand = "sh -c 'eval $START_CMD'"
+
 # Path for the health check endpoint
 healthcheckPath = "/health"
 # Timeout for the health check in seconds
@@ -16,10 +19,5 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
 [env]
-# Specify the Python version to use (Nixpacks should pick this up)
+# Specify the Python version to use
 PYTHON_VERSION = "3.11"
-
-# Ensure the START_CMD environment variable is correctly set in the Railway dashboard
-# for the specific service (main bot or dashboard) to the command you want to run:
-# e.g., for bot: python scripts/reindex_documents.py && python -m uvicorn bot.main:app --host 0.0.0.0 --port $PORT
-# e.g., for dashboard: python -m uvicorn dashboard.app:app --host 0.0.0.0 --port $PORT
